@@ -1,6 +1,12 @@
-const TILE_SIZE = 36,
+//@TODO better collision detection
+//@TODO better interaction
+//@TODO adding enemies
+//@TODO adding more objects
+
+const TILE_SIZE = 64,
+      PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
-      VIEWPORT = 20,
+      VIEWPORT = 12,
       VIEWPORT_SIZE = TILE_SIZE * VIEWPORT,
       _ = 1, //Tile Padding
       _BG = "bg", //Background Tile
@@ -294,13 +300,13 @@ class Dungeon {
     const p = this.player;
     this.ctx.fillStyle = C[_BG];
     this.ctx.fillRect(1, 1, MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE);
-    for (let y = this.vpStart("y"); y < this.vpStart("y") + VIEWPORT - _; y++) {
-      for (let x = this.vpStart("x"); x < this.vpStart("x") + VIEWPORT - _; x++) {
+    for (let y = Math.floor(this.vpStart("y")); y < Math.floor(this.vpStart("y")) + VIEWPORT - _; y++) {
+      for (let x = Math.floor(this.vpStart("x")); x < Math.floor(this.vpStart("x")) + VIEWPORT - _; x++) {
         if (map[y] && map[y][x]) {
           this.ctx.fillStyle = C[map[y][x]];
           this.ctx.fillRect(
-            this.vpAdjust(x, "x") * TILE_SIZE,
-            this.vpAdjust(y, "y") * TILE_SIZE,
+            this.vpAdjust(x,"x") * TILE_SIZE,
+            this.vpAdjust(y,"y") * TILE_SIZE,
             TILE_SIZE,
             TILE_SIZE);
         }
@@ -314,10 +320,10 @@ class Dungeon {
     this.characters.forEach((c) => {
       this.ctx.fillStyle = C[c.TILE];
       this.ctx.fillRect(
-        this.vpAdjust(c.loc.x, "x") * TILE_SIZE,
-        this.vpAdjust(c.loc.y, "y") * TILE_SIZE,
-        TILE_SIZE,
-        TILE_SIZE);
+        this.vpAdjustRealCoord(c.loc.x, "x"),
+        this.vpAdjustRealCoord(c.loc.y, "y"),
+        PLAYER_SIZE,
+        PLAYER_SIZE);
     })
   }
 
@@ -325,8 +331,12 @@ class Dungeon {
     return val - this.vpStart(axis);
   }
 
+  vpAdjustRealCoord(val, axis) {
+    return val - this.vpStart(axis) * TILE_SIZE;
+  }
+
   vpStart(axis) {
-    let result = this.player.loc[axis] - (VIEWPORT / 2) + _;
+    let result = this.player.loc[axis] / TILE_SIZE - (VIEWPORT / 2) + _;
     if (result < 0) result = 0;
     return result;
   }
@@ -335,10 +345,10 @@ class Dungeon {
     if (!this.player) return false;
     const p = this.player;
     const loc = p.loc;
-    const x = this.vpAdjust(loc.x, "x") * TILE_SIZE + TILE_SIZE / 2;
-    const y = this.vpAdjust(loc.y, "y") * TILE_SIZE + TILE_SIZE / 2;
+    const x = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
+    const y = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
 
-    const gradient = this.ctx.createRadialGradient(x, y, TILE_SIZE * 8.5, x, y, 0);
+    const gradient = this.ctx.createRadialGradient(x, y, VIEWPORT_SIZE / 3, x, y, 0);
     gradient.addColorStop(0,"black");
     gradient.addColorStop(1,"rgba(0,0,0,0)");
     this.ctx.fillStyle = gradient;
@@ -373,7 +383,7 @@ class Game {
     const startingRoom = this.level.startingRoom;
     const x = startingRoom.x + Math.floor(startingRoom.width / 2);
     const y = startingRoom.y + Math.floor(startingRoom.height / 2);
-    this.player.teleport(x, y);
+    this.player.teleport(x * TILE_SIZE, y * TILE_SIZE);
     this.level.placeCharacter(this.player);
   }
 
@@ -400,11 +410,13 @@ class Character {
   }
 
   interact() {
+    const x = Math.round(this.loc.x / TILE_SIZE);
+    const y = Math.round(this.loc.y / TILE_SIZE);
     const adjacent_tiles = [
-      {x: this.loc.x, y: this.loc.y - 1}, //north
-      {x: this.loc.x - 1, y: this.loc.y}, //west
-      {x: this.loc.x, y: this.loc.y + 1}, //south
-      {x: this.loc.x + 1, y: this.loc.y} //east
+      {x: x,      y: y - 1}, //north
+      {x: x - 1,  y: y}, //west
+      {x: x,      y: y + 1}, //south
+      {x: x + 1,  y: y} //east
     ];
     let action_done = false;
     adjacent_tiles.forEach((loc) => {
@@ -418,11 +430,12 @@ class Character {
 
   move(dir) {
     const newLoc = {x: this.loc.x, y: this.loc.y};
+    const SPD = TILE_SIZE * 0.25;
     switch (dir) {
-      case "n": newLoc.y = this.loc.y - 1 ; break;
-      case "w": newLoc.x = this.loc.x - 1 ; break;
-      case "s": newLoc.y = this.loc.y + 1 ; break;
-      case "e": newLoc.x = this.loc.x + 1 ; break;
+      case "n": newLoc.y = this.loc.y - SPD ; break;
+      case "w": newLoc.x = this.loc.x - SPD ; break;
+      case "s": newLoc.y = this.loc.y + SPD ; break;
+      case "e": newLoc.x = this.loc.x + SPD ; break;
     }
     if (this.isValidLoc(newLoc)) {
       this.loc = newLoc;
@@ -430,8 +443,10 @@ class Character {
   }
 
   isValidLoc(loc) {
-    if (!this.dungeon.map[loc.y] || !this.dungeon.map[loc.y][loc.x]) return false;
-    const d_tile = this.dungeon.map[loc.y][loc.x];
+    const x = Math.floor(loc.x / TILE_SIZE);
+    const y = Math.floor(loc.y / TILE_SIZE);
+    if (!this.dungeon.map[y] || !this.dungeon.map[y][x]) return false;
+    const d_tile = this.dungeon.map[y][x];
     return (d_tile == _O || d_tile == _H || d_tile == _B); //room, hallway, or open door tile.
   }
 
