@@ -307,8 +307,8 @@ class Dungeon {
           this.ctx.fillRect(
             this.vpAdjust(x,"x") * TILE_SIZE,
             this.vpAdjust(y,"y") * TILE_SIZE,
-            TILE_SIZE,
-            TILE_SIZE);
+            TILE_SIZE + _,
+            TILE_SIZE + _);
         }
 
       }
@@ -360,13 +360,21 @@ class Game {
 
   constructor(level, player) {
     this.FPS = 60;
-    this.keyDown = this.keyDown.bind(this);
+    this.changeDirection = this.changeDirection.bind(this);
+    this.stopMovement = this.stopMovement.bind(this);
     this.level = level;
     this.player = player;
     this.bindKeys();
     this.placePlayer();
     this.level.setPlayer(player);
     this.gameLoop();
+    this.dirTransform = {
+      "w": "n",
+      "a": "w",
+      "s": "s",
+      "d": "e",
+      "e": "e"
+    }
   }
 
   gameLoop() {
@@ -376,7 +384,8 @@ class Game {
   }
 
   bindKeys() {
-    document.addEventListener("keydown",this.keyDown)
+    document.addEventListener("keypress",this.changeDirection)
+    document.addEventListener("keyup",this.stopMovement)
   }
 
   placePlayer() {
@@ -387,16 +396,19 @@ class Game {
     this.level.placeCharacter(this.player);
   }
 
-  keyDown(event) {
+  stopMovement(event) {
+    this.player.stopMovement(this.dirTransform[event.key]);
+  }
+
+  changeDirection(event) {
 
     const mv = this.player.move;
-    switch(event.key) {
-      case "w": mv("n"); break;
-      case "a": mv("w"); break;
-      case "s": mv("s"); break;
-      case "d": mv("e"); break;
-      case "e": this.player.interact(); break;
+    if (event.key == "e") {
+      this.player.interact();
+    } else {
+      this.player.move(this.dirTransform[event.key]);
     }
+
   }
 }
 
@@ -407,11 +419,12 @@ class Character {
     this.dungeon = dungeon;
     this.move = this.move.bind(this);
     this.interact = this.interact.bind(this);
+    this.state = {moving: false, direction: null}
   }
 
   interact() {
-    const x = Math.round(this.loc.x / TILE_SIZE);
-    const y = Math.round(this.loc.y / TILE_SIZE);
+    const x = Math.floor(this.loc.x / TILE_SIZE);
+    const y = Math.floor(this.loc.y / TILE_SIZE);
     const adjacent_tiles = [
       {x: x,      y: y - 1}, //north
       {x: x - 1,  y: y}, //west
@@ -429,16 +442,33 @@ class Character {
   }
 
   move(dir) {
-    const newLoc = {x: this.loc.x, y: this.loc.y};
-    const SPD = TILE_SIZE * 0.25;
-    switch (dir) {
-      case "n": newLoc.y = this.loc.y - SPD ; break;
-      case "w": newLoc.x = this.loc.x - SPD ; break;
-      case "s": newLoc.y = this.loc.y + SPD ; break;
-      case "e": newLoc.x = this.loc.x + SPD ; break;
+    if (this.state.moving && this.state.direction == dir) return false;
+
+    const moveLoop = (dir) => {
+      if (this.state.moving && this.state.direction === dir) {
+        const newLoc = {x: this.loc.x, y: this.loc.y};
+        const SPD = TILE_SIZE * 0.15;
+        switch (dir) {
+          case "n": newLoc.y = this.loc.y - SPD ; break;
+          case "w": newLoc.x = this.loc.x - SPD ; break;
+          case "s": newLoc.y = this.loc.y + SPD ; break;
+          case "e": newLoc.x = this.loc.x + SPD ; break;
+        }
+        if (this.isValidLoc(newLoc)) {
+          this.loc = newLoc;
+        }
+        setTimeout(() => {moveLoop(dir)},30)
+      }
     }
-    if (this.isValidLoc(newLoc)) {
-      this.loc = newLoc;
+    this.state.moving = true;
+    this.state.direction = dir;
+    moveLoop(dir);
+  }
+
+  stopMovement(dir) {
+    if (this.state.direction === dir) {
+      this.state.moving = false;
+      this.state.direction = null;
     }
   }
 
