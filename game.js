@@ -15,7 +15,9 @@ const TILE_SIZE = 64,
       _D = "d", //Door Tile
       _B = "b", //Open Door Tile
       _P = "p", //player tile
+      E_S = "e_s", //skeleton Tile
       C = {}; //color Dictionary
+      C[E_S] = "#ceceb5"; //skeleton color
       C[_BG] = "black"; //Background Color
       C[_O] = "#777"; //Room Color
       C[_H] = C[_O]; //Hallway Color
@@ -30,6 +32,13 @@ class Room {
     this.y = y;
     this.width = width;
     this.height = height;
+  }
+
+  randomLocationInRoom() {
+    return {
+      x: this.x + Math.floor(Math.random() * this.width),
+      y: this.y + Math.floor(Math.random() * this.height)
+    };
   }
 }
 
@@ -272,12 +281,37 @@ class Dungeon {
     }
   }
 
+  generateEnemies() {
+      const possibleEnemies = {
+        common: [Skeleton]
+      }
+
+      const generateEnemiesForType = (enemyArray, total_enemies) => {
+        for (var i=0; i < total_enemies; i++) {
+          const rLoc = this.randomRoom().randomLocationInRoom();
+          const EnemyClass = enemyArray[Math.round(Math.random() * (enemyArray.length - 1))];
+          const enemy = new EnemyClass();
+          enemy.teleport(rLoc.x * TILE_SIZE, rLoc.y * TILE_SIZE);
+          this.placeCharacter(enemy);
+        }
+      }
+      const BASELINE_COMMON_PER_ROOM = 2;
+      const total_common_enemies = (this.rooms.length * BASELINE_COMMON_PER_ROOM) + Math.round(Math.random() * 5);
+
+      generateEnemiesForType(possibleEnemies["common"], total_common_enemies);
+  }
+
   generate() {
     this.rooms = this.generateRooms(this.map);
     this.generateMaze();
     this.connectRooms(this.rooms);
     this.removeDeadEnds();
-    this.startingRoom = this.rooms[Math.round(Math.random() * (this.rooms.length - 1))]
+    this.generateEnemies();
+    this.startingRoom = this.randomRoom();
+  }
+
+  randomRoom() {
+    return this.rooms[Math.round(Math.random() * (this.rooms.length - 1))]
   }
 
   toggleDoor(x, y) {
@@ -317,12 +351,16 @@ class Dungeon {
   renderCharacters() {
     const p = this.player;
     this.characters.forEach((c) => {
-      this.ctx.fillStyle = C[c.TILE];
-      this.ctx.fillRect(
-        this.vpAdjustRealCoord(c.loc.x, "x"),
-        this.vpAdjustRealCoord(c.loc.y, "y"),
-        PLAYER_SIZE,
-        PLAYER_SIZE);
+      if (c.img) {
+        this.ctx.drawImage(c.img, this.vpAdjustRealCoord(c.loc.x, "x"), this.vpAdjustRealCoord(c.loc.y, "y"))
+      } else {
+        this.ctx.fillStyle = C[c.TILE];
+        this.ctx.fillRect(
+          this.vpAdjustRealCoord(c.loc.x, "x"),
+          this.vpAdjustRealCoord(c.loc.y, "y"),
+          PLAYER_SIZE,
+          PLAYER_SIZE);
+      }
     })
   }
 
@@ -413,7 +451,7 @@ class Game {
 
 class Character {
   constructor(dungeon) {
-    this.TILE = "p"
+    this.TILE = _P
     this.loc = {x:0, y:0}
     this.dungeon = dungeon;
     this.move = this.move.bind(this);
@@ -485,10 +523,12 @@ class Character {
     const y1 = onTile(loc.y); //top left corner
     const x2 = onTile(loc.x + PLAYER_SIZE) //top right corner
     const y2 = y1; //top right corner
-    const x3 = x1;
-    const y3 = onTile(loc.y + PLAYER_SIZE);
+    const x3 = x1; //bottom left corner
+    const y3 = onTile(loc.y + PLAYER_SIZE); //bottom left corner
+    const x4 = x2 //bottom right corner
+    const y4 = y3;  //bottom right corner
 
-    return (isPointValid(x1,y1) && isPointValid(x2,y2) && isPointValid(x3,y3));
+    return (isPointValid(x1,y1) && isPointValid(x2,y2) && isPointValid(x3,y3) && isPointValid(x4,y4));
   }
 
   teleport(x, y) {
@@ -503,6 +543,18 @@ class Player extends Character {
   }
 }
 
+class Enemy extends Character {
+
+}
+
+class Skeleton extends Enemy {
+  constructor() {
+    super();
+    this.img = new Image();
+    this.img.src = "skeleton_lg.png";
+    this.TILE = E_S;
+  }
+}
 
 
 const canvas = document.getElementById("game");
