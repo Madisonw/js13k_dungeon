@@ -1,4 +1,3 @@
-//@TODO better collision detection
 //@TODO better interaction
 //@TODO adding enemies
 //@TODO adding more objects
@@ -473,11 +472,23 @@ class Character {
   }
 
   isValidLoc(loc) {
-    const x = Math.floor(loc.x / TILE_SIZE);
-    const y = Math.floor(loc.y / TILE_SIZE);
-    if (!this.dungeon.map[y] || !this.dungeon.map[y][x]) return false;
-    const d_tile = this.dungeon.map[y][x];
-    return (d_tile == _O || d_tile == _H || d_tile == _B); //room, hallway, or open door tile.
+
+    const onTile = (coord) => {return Math.floor(coord / TILE_SIZE)};
+
+    const isPointValid = (x, y) => {
+      if (!this.dungeon.map[y] || !this.dungeon.map[y][x]) return false;
+      const d_tile = this.dungeon.map[y][x];
+      return (d_tile == _O || d_tile == _H || d_tile == _B); //room, hallway, or open door tile.
+    }
+
+    const x1 = onTile(loc.x); //top left corner
+    const y1 = onTile(loc.y); //top left corner
+    const x2 = onTile(loc.x + PLAYER_SIZE) //top right corner
+    const y2 = y1; //top right corner
+    const x3 = x1;
+    const y3 = onTile(loc.y + PLAYER_SIZE);
+
+    return (isPointValid(x1,y1) && isPointValid(x2,y2) && isPointValid(x3,y3));
   }
 
   teleport(x, y) {
