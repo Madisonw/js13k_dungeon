@@ -58,7 +58,7 @@ class Dungeon {
   }
 
   placeCharacter(c) {
-    this.characters.push(c);
+    this.characters.unshift(c);
   }
 
   setPlayer(c) {
@@ -332,11 +332,34 @@ class Dungeon {
     }
   }
 
+  pixelate(l_x, l_y, w, h, blocksize) {
+    for(let x = l_x; x < l_x + w; x += blocksize / 2)
+    {
+        for(let y = l_y; y < l_y + h; y += blocksize / 2)
+        {
+            const max = 2;
+            const min = -6;
+            const random_x = Math.round(Math.random() * w)
+            const random_y = Math.round(Math.random() * h);
+            var pixel = this.ctx.getImageData(x + random_x, y + random_y, 1, 1);
+            this.ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
+            const render_x = random_x + (Math.random() * (max - min) + min);
+            const render_y = random_y + (Math.random() * (max - min) + min);
+            this.ctx.fillRect(x + render_x, y + render_y, blocksize, blocksize);
+        }
+    }
+  }
+
   renderCharacters() {
     const p = this.player;
     this.characters.forEach((c) => {
       if (c.img) {
-        this.ctx.drawImage(c.img, this.vpAdjustRealCoord(c.loc.x, "x"), this.vpAdjustRealCoord(c.loc.y, "y"))
+        const x = this.vpAdjustRealCoord(c.loc.x, "x");
+        const y = this.vpAdjustRealCoord(c.loc.y, "y");
+        const w = 100;
+        const h = 100;
+        this.ctx.drawImage(c.img, x, y, w, h)
+        this.pixelate(x - w, y - h, w * 1.5, h * 1.5, 10);
       } else {
         this.ctx.fillStyle = C[c.TILE];
         this.ctx.fillRect(
@@ -394,6 +417,7 @@ class Game {
     this.player = player;
     this.bindKeys();
     this.placePlayer();
+    this.placeMonster();
     this.level.setPlayer(player);
     this.gameLoop();
     this.dirTransform = {
@@ -433,6 +457,12 @@ class Game {
     const y = startingRoom.y + Math.floor(startingRoom.height / 2);
     this.player.teleport(x * TILE_SIZE, y * TILE_SIZE);
     this.level.placeCharacter(this.player);
+  }
+
+  placeMonster() {
+    const monster = new Monster();
+    monster.teleport(this.player.loc.x + (TILE_SIZE), this.player.loc.y)
+    this.level.placeCharacter(monster);
   }
 
   stopMovement(event) {
@@ -549,11 +579,11 @@ class Enemy extends Character {
 
 }
 
-class Skeleton extends Enemy {
+class Monster extends Enemy {
   constructor() {
     super();
     this.img = new Image();
-    this.img.src = "skeleton_lg.png";
+    this.img.src = "slenderman.png";
     this.TILE = E_S;
   }
 }
