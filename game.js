@@ -337,15 +337,15 @@ class Dungeon {
     {
         for(let y = l_y; y < l_y + h; y += blocksize / 2)
         {
-            const max = 2;
-            const min = -6;
+            const max = 0.5;
+            const min = -0.5;
             const random_x = Math.round(Math.random() * w)
             const random_y = Math.round(Math.random() * h);
             var pixel = this.ctx.getImageData(x + random_x, y + random_y, 1, 1);
             this.ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
             const render_x = random_x + (Math.random() * (max - min) + min);
             const render_y = random_y + (Math.random() * (max - min) + min);
-            this.ctx.fillRect(x + render_x, y + render_y, blocksize, blocksize);
+            this.ctx.fillRect(x + render_x, y + render_y, 7, 7);
         }
     }
   }
