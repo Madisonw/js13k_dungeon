@@ -281,24 +281,8 @@ class Dungeon {
     }
   }
 
-  generateEnemies() {
-      const possibleEnemies = {
-        common: [Skeleton]
-      }
+  generateMonster() {
 
-      const generateEnemiesForType = (enemyArray, total_enemies) => {
-        for (var i=0; i < total_enemies; i++) {
-          const rLoc = this.randomRoom().randomLocationInRoom();
-          const EnemyClass = enemyArray[Math.round(Math.random() * (enemyArray.length - 1))];
-          const enemy = new EnemyClass();
-          enemy.teleport(rLoc.x * TILE_SIZE, rLoc.y * TILE_SIZE);
-          this.placeCharacter(enemy);
-        }
-      }
-      const BASELINE_COMMON_PER_ROOM = 2;
-      const total_common_enemies = (this.rooms.length * BASELINE_COMMON_PER_ROOM) + Math.round(Math.random() * 5);
-
-      generateEnemiesForType(possibleEnemies["common"], total_common_enemies);
   }
 
   generate() {
@@ -306,7 +290,7 @@ class Dungeon {
     this.generateMaze();
     this.connectRooms(this.rooms);
     this.removeDeadEnds();
-    this.generateEnemies();
+    this.generateMonster();
     this.startingRoom = this.randomRoom();
   }
 
@@ -384,8 +368,10 @@ class Dungeon {
     const loc = p.loc;
     const x = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
     const y = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
+    const FLICKER_VARIANCE = 0.12;
+    const TORCH = 3 - (p.torch - 10) * 0.30;
 
-    const gradient = this.ctx.createRadialGradient(x, y, VIEWPORT_SIZE / 3, x, y, 0);
+    const gradient = this.ctx.createRadialGradient(x, y, VIEWPORT_SIZE / (TORCH + (Math.random()*FLICKER_VARIANCE)), x, y, 0);
     gradient.addColorStop(0,"black");
     gradient.addColorStop(1,"rgba(0,0,0,0)");
     this.ctx.fillStyle = gradient;
@@ -397,6 +383,11 @@ class Game {
 
   constructor(level, player) {
     this.FPS = 60;
+    this.FRAME_INTERVAL = 1000 / this.FPS;
+    this.TORCH_DEGRADE_INTERVAL = 8 //seconds
+    this.TORCH_DEGRADE_RATE = 1 //out of ten
+    this.GAME_START = performance.now();
+    this.current_second = 0;
     this.changeDirection = this.changeDirection.bind(this);
     this.stopMovement = this.stopMovement.bind(this);
     this.level = level;
@@ -415,9 +406,20 @@ class Game {
   }
 
   gameLoop() {
-    const frame = 1000 / 60;
     this.level.render();
-    setTimeout(() => {this.gameLoop()},frame);
+    this.torchLoop();
+    setTimeout(() => {this.gameLoop()},this.FRAME_INTERVAL);
+  }
+
+  torchLoop() {
+    const now = performance.now();
+    const second = Math.floor(Math.floor(now - this.GAME_START) / 1000);
+    if (second > this.current_second) {
+      this.current_second = second;
+      if ((this.current_second % this.TORCH_DEGRADE_INTERVAL === 0)) {
+        this.player.torch = this.player.torch - 1;
+      }
+    }
   }
 
   bindKeys() {
@@ -438,7 +440,6 @@ class Game {
   }
 
   changeDirection(event) {
-
     const mv = this.player.move;
     if (event.key == "e") {
       this.player.interact();
@@ -540,6 +541,7 @@ class Player extends Character {
   constructor(dungeon) {
     super();
     this.dungeon = dungeon;
+    this.torch = 10;
   }
 }
 
