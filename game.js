@@ -1,7 +1,8 @@
 //@TODO better interaction
 //@TODO adding enemies
 //@TODO adding more objects
-
+const IMG_FLOOR = new Image();
+IMG_FLOOR.src = "floor.png";
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -16,7 +17,8 @@ const TILE_SIZE = 64,
       _B = "b", //Open Door Tile
       _P = "p", //player tile
       E_S = "e_s", //skeleton Tile
-      C = {}; //color Dictionary
+      C = {}, //color Dictionary
+      IMG = {} //img Dictionary
       C[E_S] = "#ceceb5"; //skeleton color
       C[_BG] = "black"; //Background Color
       C[_O] = "#777"; //Room Color
@@ -25,6 +27,8 @@ const TILE_SIZE = 64,
       C[_D] = "#513520"; //Door Color
       C[_B] = "#c1ad9e"; //Open Door Color
       C[_P] = "orange"; //Door Color
+      IMG[_O] = IMG_FLOOR
+      IMG[_H] = IMG_FLOOR
 
 class Room {
   constructor(x, y, width, height) {
@@ -320,12 +324,16 @@ class Dungeon {
     for (let y = Math.floor(this.vpStart("y")); y < Math.floor(this.vpStart("y")) + VIEWPORT - _; y++) {
       for (let x = Math.floor(this.vpStart("x")); x < Math.floor(this.vpStart("x")) + VIEWPORT - _; x++) {
         if (map[y] && map[y][x]) {
-          this.ctx.fillStyle = C[map[y][x]];
-          this.ctx.fillRect(
-            this.vpAdjust(x,"x") * TILE_SIZE,
-            this.vpAdjust(y,"y") * TILE_SIZE,
-            TILE_SIZE + _,
-            TILE_SIZE + _);
+          if (IMG[map[y][x]]) {
+            this.ctx.drawImage(IMG[map[y][x]], this.vpAdjust(x,"x") * TILE_SIZE, this.vpAdjust(y,"y") * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          } else {
+            this.ctx.fillStyle = C[map[y][x]];
+            this.ctx.fillRect(
+              this.vpAdjust(x,"x") * TILE_SIZE,
+              this.vpAdjust(y,"y") * TILE_SIZE,
+              TILE_SIZE + _,
+              TILE_SIZE + _);
+          }
         }
 
       }
@@ -583,6 +591,7 @@ class Player extends Character {
     this.dungeon = dungeon;
     this.torch = 10;
     this.footstep = new Audio("footstep.mp3");
+    this.footstep.volume = 0.2;
     this.footstepCadence = 300;
   }
 }
