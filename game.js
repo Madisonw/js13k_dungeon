@@ -389,8 +389,8 @@ class Dungeon {
     if (!this.player) return false;
     const p = this.player;
     const loc = p.loc;
-    const x = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
-    const y = (VIEWPORT_SIZE / 2) - TILE_SIZE / 1.3;
+    const x = this.vpAdjustRealCoord(loc.x, "x") + TILE_SIZE / 4;
+    const y = this.vpAdjustRealCoord(loc.y, "y") + TILE_SIZE / 4;
     const FLICKER_VARIANCE = 0.12;
     const TORCH = 3 - (p.torch - 10) * 0.30;
 
@@ -405,14 +405,13 @@ class Dungeon {
 class Game {
 
   constructor(level, player) {
-    this.FPS = 60;
-    this.FRAME_INTERVAL = 1000 / this.FPS;
     this.TORCH_DEGRADE_INTERVAL = 8 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
     this.GAME_START = performance.now();
     this.current_second = 0;
     this.changeDirection = this.changeDirection.bind(this);
     this.stopMovement = this.stopMovement.bind(this);
+    this.gameLoop = this.gameLoop.bind(this);
     this.level = level;
     this.player = player;
     this.bindKeys();
@@ -427,12 +426,14 @@ class Game {
       "d": "e",
       "e": "e"
     }
+    this.GAME_TEXT = "run away";
   }
 
   gameLoop() {
     this.level.render();
     this.torchLoop();
-    setTimeout(() => {this.gameLoop()},this.FRAME_INTERVAL);
+    this.textLoop();
+    window.requestAnimationFrame(this.gameLoop);
   }
 
   torchLoop() {
@@ -444,6 +445,11 @@ class Game {
         this.player.torch = this.player.torch - 1;
       }
     }
+  }
+
+  textLoop() {
+    this.level.ctx.font = "12px white"
+    this.level.ctx.strokeText(this.GAME_TEXT, 20, 400);
   }
 
   bindKeys() {
@@ -511,7 +517,7 @@ class Character {
 
   move(dir) {
     if (this.state.moving && this.state.direction == dir) return false;
-
+    let moveTime = 0;
     const moveLoop = (dir) => {
       if (this.state.moving && this.state.direction === dir) {
         const newLoc = {x: this.loc.x, y: this.loc.y};
@@ -525,6 +531,10 @@ class Character {
         if (this.isValidLoc(newLoc)) {
           this.loc = newLoc;
         }
+        if (moveTime % this.footstepCadence < 30 && this.footstep) {
+          this.footstep.play();
+        }
+        moveTime+=30;
         setTimeout(() => {moveLoop(dir)},30)
       }
     }
@@ -572,6 +582,8 @@ class Player extends Character {
     super();
     this.dungeon = dungeon;
     this.torch = 10;
+    this.footstep = new Audio("footstep.mp3");
+    this.footstepCadence = 300;
   }
 }
 
