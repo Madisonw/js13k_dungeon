@@ -2,7 +2,7 @@
 //@TODO adding enemies
 //@TODO adding more objects
 const IMG_FLOOR = new Image();
-IMG_FLOOR.src = "img_prod/floor.png";
+IMG_FLOOR.src = "img_prod/floor-min.png";
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -623,7 +623,7 @@ class Player extends Character {
     this.animated = true;
     this.SPEED = TILE_SIZE * 0.15;
     this.s_idle = new Sprite(SPR+"idle.png", spr_w, spr_h);
-    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+".png", spr_w, spr_h); })
+    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", spr_w, spr_h); })
     this.dungeon = dungeon;
     this.torch = 10;
     this.footstep = new Audio("audio_prod/footstep.mp3");
