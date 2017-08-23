@@ -3,6 +3,8 @@
 //@TODO adding more objects
 const IMG_FLOOR = new Image();
 IMG_FLOOR.src = "img_prod/floor-min.png";
+const IMG_WALL_N = new Image();
+IMG_WALL_N.src = "img_prod/wall_n.png";
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -17,6 +19,7 @@ const TILE_SIZE = 64,
       _D = "d", //Door Tile
       _B = "b", //Open Door Tile
       _P = "p", //player tile
+      _R_N = "r_n",
       E_S = "e_s", //skeleton Tile
       C = {}, //color Dictionary
       IMG = {} //img Dictionary
@@ -30,6 +33,7 @@ const TILE_SIZE = 64,
       C[_P] = "orange"; //Door Color
       IMG[_O] = IMG_FLOOR
       IMG[_H] = IMG_FLOOR
+      IMG[_R_N] = IMG_WALL_N
 
 class Sprite {
   constructor(src, width, height) {
@@ -142,8 +146,12 @@ class Dungeon {
       for (let y = room.y; y < room.y + room.height; y++) {
         for (let x = room.x; x < room.x + room.width; x++) {
           m[y][x] = _O;
+          if (y === room.y) {
+            m[y - 1][x] = _R_N;
+          }
         }
       }
+
       return room;
     });
   }
