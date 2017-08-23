@@ -2,7 +2,7 @@
 //@TODO adding enemies
 //@TODO adding more objects
 const IMG_FLOOR = new Image();
-IMG_FLOOR.src = "floor.png";
+IMG_FLOOR.src = "img_prod/floor.png";
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -623,10 +623,7 @@ class Player extends Character {
     this.animated = true;
     this.SPEED = TILE_SIZE * 0.15;
     this.s_idle = new Sprite(SPR+"idle.png", spr_w, spr_h);
-    this.s_walk_n = new Sprite(SPR+"walk_n.png", spr_w, spr_h);
-    this.s_walk_s = new Sprite(SPR+"walk_s.png", spr_w, spr_h);
-    this.s_walk_e = new Sprite(SPR+"walk_e.png", spr_w, spr_h);
-    this.s_walk_w = new Sprite(SPR+"walk_w.png", spr_w, spr_h);
+    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+".png", spr_w, spr_h); })
     this.dungeon = dungeon;
     this.torch = 10;
     this.footstep = new Audio("footstep.mp3");
@@ -647,7 +644,6 @@ class Monster extends Enemy {
     this.w = 200;
     this.h = 200;
     this.s_idle = new Sprite("slenderman.png", this.w, this.h);
-    //TODO make the pixelate thing happen for this guy.
     this.TILE = E_S;
   }
 
