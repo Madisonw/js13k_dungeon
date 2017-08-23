@@ -8,6 +8,7 @@ const TILE_SIZE = 64,
       MAP_SIZE = 50,
       VIEWPORT = 12,
       VIEWPORT_SIZE = TILE_SIZE * VIEWPORT,
+      DIR = ["s", "n", "e", "w"],
       _ = 1, //Tile Padding
       _BG = "bg", //Background Tile
       _O = "r", //Room Tile
@@ -150,9 +151,8 @@ class Dungeon {
   generateMaze() {
     const m = this.map;
     const _ = 1;
-    const dir = ["n","s","e","w"];
     const randomDir = () => {
-      return dir[Math.round(Math.random() * dir.length)];
+      return DIR[Math.round(Math.random() * DIR.length)];
     }
 
     const floodFill = (x, y, targetC, replacementC, direction) => {
@@ -366,24 +366,6 @@ class Dungeon {
     }
   }
 
-  pixelate(l_x, l_y, w, h, blocksize) {
-    for(let x = l_x; x < l_x + w; x += blocksize / 2)
-    {
-        for(let y = l_y; y < l_y + h; y += blocksize / 2)
-        {
-            const max = 0.5;
-            const min = -0.5;
-            const random_x = Math.round(Math.random() * w)
-            const random_y = Math.round(Math.random() * h);
-            var pixel = this.ctx.getImageData(x + random_x, y + random_y, 1, 1);
-            this.ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
-            const render_x = random_x + (Math.random() * (max - min) + min);
-            const render_y = random_y + (Math.random() * (max - min) + min);
-            this.ctx.fillRect(x + render_x, y + render_y, 7, 7);
-        }
-    }
-  }
-
   renderCharacters() {
     const p = this.player;
     this.characters.forEach((c) => {
@@ -391,9 +373,6 @@ class Dungeon {
         const x = this.vpAdjustRealCoord(c.loc.x, "x");
         const y = this.vpAdjustRealCoord(c.loc.y, "y");
         c.drawSprite(this.ctx, x, y);
-        if (c instanceof Monster) {
-          this.pixelate(x - w, y - h, w * 1.5, h * 1.5, 10);
-        }
       } else {
         this.ctx.fillStyle = C[c.TILE];
         this.ctx.fillRect(
@@ -527,7 +506,7 @@ class Character {
     this.dungeon = dungeon;
     this.move = this.move.bind(this);
     this.interact = this.interact.bind(this);
-    this.state = {moving: false, direction: "s"}
+    this.state = {moving: false, direction: "s", sprite_index: 0}
   }
 
   drawSprite(ctx, x, y) {
@@ -536,10 +515,9 @@ class Character {
 
   getCurrentSpriteArgs(x, y) {
     if (this.state.moving) {
-      return this["s_walk_"+this.state.direction].getDrawArgsForIndex(0, x, y);
+      return this["s_walk_"+this.state.direction].getDrawArgsForIndex(this.state.sprite_index, x, y);
     } else {
-      const dir = ["s", "n", "e", "w"];
-      return this.s_idle.getDrawArgsForIndex(dir.indexOf(this.state.direction), x, y);
+      return this.s_idle.getDrawArgsForIndex(DIR.indexOf(this.state.direction), x, y);
     }
   }
 
@@ -568,7 +546,7 @@ class Character {
     const moveLoop = (dir) => {
       if (this.state.moving && this.state.direction === dir) {
         const newLoc = {x: this.loc.x, y: this.loc.y};
-        const SPD = TILE_SIZE * 0.15;
+        const SPD = this.SPEED;
         switch (dir) {
           case "n": newLoc.y = this.loc.y - SPD ; break;
           case "w": newLoc.x = this.loc.x - SPD ; break;
@@ -581,6 +559,9 @@ class Character {
         if (moveTime % this.footstepCadence < 30 && this.footstep) {
           this.footstep.play();
         }
+        if (moveTime % this.spriteCadence < 30) {
+          this.nextSprite();
+        }
         moveTime+=30;
         setTimeout(() => {moveLoop(dir)},30)
       }
@@ -590,9 +571,19 @@ class Character {
     moveLoop(dir);
   }
 
+  nextSprite() {
+    if (this.state.sprite_index + 1 > 3) {
+      this.state.sprite_index = 0;
+    } else {
+      this.state.sprite_index += 1;
+    }
+    return this.state.sprite_index;
+  }
+
   stopMovement(dir) {
     if (this.state.direction === dir) {
       this.state.moving = false;
+      this.state.sprite_index = false;
     }
   }
 
@@ -630,7 +621,7 @@ class Player extends Character {
     const spr_w = 34;
     const spr_h = 47;
     this.animated = true;
-
+    this.SPEED = TILE_SIZE * 0.15;
     this.s_idle = new Sprite(SPR+"idle.png", spr_w, spr_h);
     this.s_walk_n = new Sprite(SPR+"walk_n.png", spr_w, spr_h);
     this.s_walk_s = new Sprite(SPR+"walk_s.png", spr_w, spr_h);
@@ -640,7 +631,8 @@ class Player extends Character {
     this.torch = 10;
     this.footstep = new Audio("footstep.mp3");
     this.footstep.volume = 0.2;
-    this.footstepCadence = 300;
+    this.footstepCadence = 100;
+    this.spriteCadence = 100;
   }
 }
 
@@ -652,9 +644,34 @@ class Monster extends Enemy {
   constructor() {
     super();
     this.animated = true;
-    this.s_idle = new Sprite("slenderman.png", 200, 200);
+    this.w = 200;
+    this.h = 200;
+    this.s_idle = new Sprite("slenderman.png", this.w, this.h);
     //TODO make the pixelate thing happen for this guy.
     this.TILE = E_S;
+  }
+
+  pixelate(ctx, l_x, l_y, w, h, blocksize) {
+    for(let x = l_x; x < l_x + w; x += blocksize / 2)
+    {
+        for(let y = l_y; y < l_y + h; y += blocksize / 2)
+        {
+            const max = 0.5;
+            const min = -0.5;
+            const random_x = Math.round(Math.random() * w)
+            const random_y = Math.round(Math.random() * h);
+            var pixel = ctx.getImageData(x + random_x, y + random_y, 1, 1);
+            ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
+            const render_x = random_x + (Math.random() * (max - min) + min);
+            const render_y = random_y + (Math.random() * (max - min) + min);
+            ctx.fillRect(x + render_x, y + render_y, 7, 7);
+        }
+    }
+  }
+
+  drawSprite(ctx, x, y) {
+    ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
+    this.pixelate(ctx, x - this.w, y - this.h, this.w * 1.5, this.h * 1.5, 10);
   }
 }
 
