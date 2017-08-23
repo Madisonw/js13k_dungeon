@@ -367,20 +367,10 @@ class Dungeon {
   }
 
   renderCharacters() {
-    const p = this.player;
     this.characters.forEach((c) => {
-      if (c.animated) {
-        const x = this.vpAdjustRealCoord(c.loc.x, "x");
-        const y = this.vpAdjustRealCoord(c.loc.y, "y");
-        c.drawSprite(this.ctx, x, y);
-      } else {
-        this.ctx.fillStyle = C[c.TILE];
-        this.ctx.fillRect(
-          this.vpAdjustRealCoord(c.loc.x, "x"),
-          this.vpAdjustRealCoord(c.loc.y, "y"),
-          PLAYER_SIZE,
-          PLAYER_SIZE);
-      }
+      const x = this.vpAdjustRealCoord(c.loc.x, "x");
+      const y = this.vpAdjustRealCoord(c.loc.y, "y");
+      c.drawSprite(this.ctx, x, y);
     })
   }
 
@@ -622,7 +612,7 @@ class Player extends Character {
     const spr_h = 47;
     this.animated = true;
     this.SPEED = TILE_SIZE * 0.15;
-    this.s_idle = new Sprite(SPR+"idle.png", spr_w, spr_h);
+    this.s_idle = new Sprite(SPR+"idle-min.png", spr_w, spr_h);
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", spr_w, spr_h); })
     this.dungeon = dungeon;
     this.torch = 10;
