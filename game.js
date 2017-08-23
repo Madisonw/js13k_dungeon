@@ -626,7 +626,7 @@ class Player extends Character {
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+".png", spr_w, spr_h); })
     this.dungeon = dungeon;
     this.torch = 10;
-    this.footstep = new Audio("footstep.mp3");
+    this.footstep = new Audio("audio_prod/footstep.mp3");
     this.footstep.volume = 0.2;
     this.footstepCadence = 100;
     this.spriteCadence = 100;
