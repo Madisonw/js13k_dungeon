@@ -30,6 +30,32 @@ const TILE_SIZE = 64,
       IMG[_O] = IMG_FLOOR
       IMG[_H] = IMG_FLOOR
 
+class Sprite {
+  constructor(src, width, height) {
+    this.img = new Image();
+    this.img.src = src;
+    this.width = width;
+    this.height = height;
+    this.getDrawArgsForIndex = this.getDrawArgsForIndex.bind(this);
+  }
+
+  getDrawArgsForIndex(frame_index, dest_x, dest_y) {
+    const w = this.width;
+    const h = this.height;
+    return [
+      this.img,
+      frame_index * w, //frame index times frame width
+      0,
+      w,
+      h,
+      dest_x,
+      dest_y,
+      w,
+      h
+      ]
+  }
+}
+
 class Room {
   constructor(x, y, width, height) {
     this.x = x;
@@ -361,13 +387,13 @@ class Dungeon {
   renderCharacters() {
     const p = this.player;
     this.characters.forEach((c) => {
-      if (c.img) {
+      if (c.animated) {
         const x = this.vpAdjustRealCoord(c.loc.x, "x");
         const y = this.vpAdjustRealCoord(c.loc.y, "y");
-        const w = 100;
-        const h = 100;
-        this.ctx.drawImage(c.img, x, y, w, h)
-        this.pixelate(x - w, y - h, w * 1.5, h * 1.5, 10);
+        c.drawSprite(this.ctx, x, y);
+        if (c instanceof Monster) {
+          this.pixelate(x - w, y - h, w * 1.5, h * 1.5, 10);
+        }
       } else {
         this.ctx.fillStyle = C[c.TILE];
         this.ctx.fillRect(
@@ -501,7 +527,20 @@ class Character {
     this.dungeon = dungeon;
     this.move = this.move.bind(this);
     this.interact = this.interact.bind(this);
-    this.state = {moving: false, direction: null}
+    this.state = {moving: false, direction: "s"}
+  }
+
+  drawSprite(ctx, x, y) {
+    ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
+  }
+
+  getCurrentSpriteArgs(x, y) {
+    if (this.state.moving) {
+      return this["s_walk_"+this.state.direction].getDrawArgsForIndex(0, x, y);
+    } else {
+      const dir = ["s", "n", "e", "w"];
+      return this.s_idle.getDrawArgsForIndex(dir.indexOf(this.state.direction), x, y);
+    }
   }
 
   interact() {
@@ -554,7 +593,6 @@ class Character {
   stopMovement(dir) {
     if (this.state.direction === dir) {
       this.state.moving = false;
-      this.state.direction = null;
     }
   }
 
@@ -588,6 +626,16 @@ class Character {
 class Player extends Character {
   constructor(dungeon) {
     super();
+    const SPR = "img_prod/s_pc_";
+    const spr_w = 34;
+    const spr_h = 47;
+    this.animated = true;
+
+    this.s_idle = new Sprite(SPR+"idle.png", spr_w, spr_h);
+    this.s_walk_n = new Sprite(SPR+"walk_n.png", spr_w, spr_h);
+    this.s_walk_s = new Sprite(SPR+"walk_s.png", spr_w, spr_h);
+    this.s_walk_e = new Sprite(SPR+"walk_e.png", spr_w, spr_h);
+    this.s_walk_w = new Sprite(SPR+"walk_w.png", spr_w, spr_h);
     this.dungeon = dungeon;
     this.torch = 10;
     this.footstep = new Audio("footstep.mp3");
@@ -603,8 +651,9 @@ class Enemy extends Character {
 class Monster extends Enemy {
   constructor() {
     super();
-    this.img = new Image();
-    this.img.src = "slenderman.png";
+    this.animated = true;
+    this.s_idle = new Sprite("slenderman.png", 200, 200);
+    //TODO make the pixelate thing happen for this guy.
     this.TILE = E_S;
   }
 }
