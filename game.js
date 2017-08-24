@@ -1,6 +1,6 @@
-//@TODO better interaction
-//@TODO adding enemies
-//@TODO adding more objects
+//TODO add the OIL
+//TODO add the pictures
+//TODO monster AI
 const IMG_FLOOR = new Image();
 IMG_FLOOR.src = "img_prod/floor-min.png";
 const IMG_WALL_N = new Image();
@@ -442,7 +442,7 @@ class Game {
 
   constructor(level, player) {
     this.current_consecutive_game = 0;
-    this.TORCH_DEGRADE_INTERVAL = 8 //seconds
+    this.TORCH_DEGRADE_INTERVAL = 12 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
     this.GAME_START = performance.now();
     this.current_second = 0;
@@ -493,7 +493,7 @@ class Game {
   textLoop() {
     this.level.ctx.font = "24px Courier"
     this.level.ctx.fillStyle = "white"
-    this.level.ctx.fillText(this.game_text.substr(0,this.current_text_letter), 350, 750);
+    this.level.ctx.fillText(this.game_text.substr(0,this.current_text_letter), 100, 750);
     const second = Math.floor(Math.floor(performance.now() - this.GAME_START) / 1000);
     if (second > this.current_second && this.current_second % 1 === 0) {
       if (this.game_text.length > this.current_text_letter) {
@@ -665,7 +665,7 @@ class Player extends Character {
     this.s_idle = new Sprite(SPR+"idle-min.png", this.w, this.h);
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", this.w, this.h); })
     this.dungeon = dungeon;
-    this.torch = 15;
+    this.torch = 12;
     this.footstep = new Audio("audio_prod/footstep.mp3");
     this.footstep.volume = 0.2;
     this.footstepCadence = 100;
