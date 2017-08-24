@@ -441,6 +441,7 @@ class Dungeon {
 class Game {
 
   constructor(level, player) {
+    this.current_consecutive_game = 0;
     this.TORCH_DEGRADE_INTERVAL = 8 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
     this.GAME_START = performance.now();
@@ -454,6 +455,8 @@ class Game {
     this.placePlayer();
     this.placeMonster();
     this.level.setPlayer(player);
+    this.setText(this.monster.ng_dialog[this.current_consecutive_game]);
+
     this.gameLoop();
     this.dirTransform = {
       "w": "n",
@@ -462,7 +465,8 @@ class Game {
       "d": "e",
       "e": "e"
     }
-    this.GAME_TEXT = "run away";
+
+
   }
 
   gameLoop() {
@@ -473,19 +477,30 @@ class Game {
   }
 
   torchLoop() {
-    const now = performance.now();
-    const second = Math.floor(Math.floor(now - this.GAME_START) / 1000);
+    const second = Math.floor(Math.floor(performance.now() - this.GAME_START) / 1000);
     if (second > this.current_second) {
-      this.current_second = second;
       if ((this.current_second % this.TORCH_DEGRADE_INTERVAL === 0)) {
         this.player.torch = this.player.torch - 1;
       }
     }
   }
 
+  setText(text) {
+    this.game_text = text;
+    this.current_text_letter = 0;
+  }
+
   textLoop() {
-    this.level.ctx.font = "12px white"
-    this.level.ctx.strokeText(this.GAME_TEXT, 20, 400);
+    this.level.ctx.font = "24px Courier"
+    this.level.ctx.fillStyle = "white"
+    this.level.ctx.fillText(this.game_text.substr(0,this.current_text_letter), 350, 750);
+    const second = Math.floor(Math.floor(performance.now() - this.GAME_START) / 1000);
+    if (second > this.current_second && this.current_second % 1 === 0) {
+      if (this.game_text.length > this.current_text_letter) {
+        this.current_text_letter += 1;
+      }
+      this.current_second = second;
+    }
   }
 
   bindKeys() {
@@ -505,6 +520,7 @@ class Game {
     const monster = new Monster();
     monster.teleport(this.player.loc.x + (TILE_SIZE), this.player.loc.y)
     this.level.placeCharacter(monster);
+    this.monster = monster;
   }
 
   stopMovement(event) {
@@ -669,6 +685,19 @@ class Monster extends Enemy {
     this.h = 200;
     this.s_idle = new Sprite("slenderman.png", this.w, this.h);
     this.TILE = E_S;
+    this.dialog = [
+      "oh, I wouldn't do that...",
+      "you'll hurt yourself running like that.",
+      "what is it you're trying to do?",
+      "no matter... i'll find you eventually.",
+      "i always find you eventually...",
+      "it's rude to run you know"
+    ]
+    this.ng_dialog = [
+      "are you lost...?",
+      "oh... you're back.",
+      "I just want to talk this time, I promise..."
+    ]
   }
 
   pixelate(ctx, l_x, l_y, w, h, blocksize) {
