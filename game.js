@@ -5,10 +5,12 @@ const IMG_FLOOR = new Image();
 IMG_FLOOR.src = "img_prod/floor-min.png";
 const IMG_WALL_N = new Image();
 IMG_WALL_N.src = "img_prod/wall_n.png";
+const IMG_WALL_ANY = new Image();
+IMG_WALL_ANY.src = "img_prod/wall_any.png";
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
-      VIEWPORT = 12,
+      VIEWPORT = 18,
       VIEWPORT_SIZE = TILE_SIZE * VIEWPORT,
       DIR = ["s", "n", "e", "w"],
       _ = 1, //Tile Padding
@@ -34,6 +36,9 @@ const TILE_SIZE = 64,
       IMG[_O] = IMG_FLOOR
       IMG[_H] = IMG_FLOOR
       IMG[_R_N] = IMG_WALL_N
+      IMG[_R] = IMG_WALL_ANY
+      IMG[_D] = IMG_FLOOR
+      IMG[_B] = IMG_FLOOR
 
 class Sprite {
   constructor(src, width, height) {
@@ -83,6 +88,8 @@ class Dungeon {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
     this.map = new Array(MAP_SIZE);
+    this.s_door_ns = new Sprite("img_prod/s_doors_ns.png", TILE_SIZE, TILE_SIZE);
+    this.s_door_ew = new Sprite("img_prod/s_doors_ew.png", TILE_SIZE, TILE_SIZE);
     for (let y=0; y < MAP_SIZE; y++) {
       this.map[y] = new Array(MAP_SIZE);
       for (let x=0; x < MAP_SIZE; x++) {
@@ -289,7 +296,12 @@ class Dungeon {
       for (let c = 0; c < totalConnectors; c++) {
         const index = Math.round(Math.random() * (possibleConnectors.length - 1));
         const coord = possibleConnectors[index];
-        m[coord.y][coord.x] = _D;
+        if (coord) {
+          m[coord.y][coord.x] = _D;
+          if (m[coord.y-1][coord.x] === _R) {
+            m[coord.y-1][coord.x] = _R_N;
+          }
+        }
       }
     })
 
@@ -314,6 +326,15 @@ class Dungeon {
               done = false;
             }
           }
+        }
+      }
+    }
+    for (let y=0; y < MAP_SIZE; y++) {
+      for (let x=0; x < MAP_SIZE; x++) {
+        if (
+          m[y - 1] && m[y][x] === _H  && m[y - 1][x] === _R
+        ) {
+          m[y - 1][x] = _R_N;
         }
       }
     }
@@ -358,15 +379,19 @@ class Dungeon {
     for (let y = Math.floor(this.vpStart("y")); y < Math.floor(this.vpStart("y")) + VIEWPORT - _; y++) {
       for (let x = Math.floor(this.vpStart("x")); x < Math.floor(this.vpStart("x")) + VIEWPORT - _; x++) {
         if (map[y] && map[y][x]) {
-          if (IMG[map[y][x]]) {
-            this.ctx.drawImage(IMG[map[y][x]], this.vpAdjust(x,"x") * TILE_SIZE, this.vpAdjust(y,"y") * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = C[map[y][x]];
-            this.ctx.fillRect(
-              this.vpAdjust(x,"x") * TILE_SIZE,
-              this.vpAdjust(y,"y") * TILE_SIZE,
-              TILE_SIZE + _,
-              TILE_SIZE + _);
+          const lx = this.vpAdjust(x,"x") * TILE_SIZE;
+          const ly = this.vpAdjust(y,"y") * TILE_SIZE;
+          this.ctx.drawImage(IMG[map[y][x]], lx, ly, TILE_SIZE, TILE_SIZE);
+          if (map[y][x] == _D || map[y][x] == _B) {
+            //its a door
+            const status = (map[y][x] == _D) ? 0 : 1;
+            if (map[y - 1][x] == _O || map[y + 1][x] == _O) {
+              //it's a north-south door
+              this.ctx.drawImage(...this.s_door_ns.getDrawArgsForIndex(status, lx, ly))
+            } else {
+              //its an east-west door
+              this.ctx.drawImage(...this.s_door_ew.getDrawArgsForIndex(status, lx, ly))
+            }
           }
         }
 
@@ -391,7 +416,7 @@ class Dungeon {
   }
 
   vpStart(axis) {
-    let result = this.player.loc[axis] / TILE_SIZE - (VIEWPORT / 2) + _;
+    let result = this.player.loc[axis] / TILE_SIZE - (VIEWPORT / 2.5) + _;
     if (result < 0) result = 0;
     return result;
   }
@@ -520,9 +545,10 @@ class Character {
   }
 
   interact() {
-    const x = Math.floor(this.loc.x / TILE_SIZE);
-    const y = Math.floor(this.loc.y / TILE_SIZE);
+    const x = Math.floor((this.loc.x + (this.w / 2)) / TILE_SIZE);
+    const y = Math.floor((this.loc.y + (this.h / 2)) / TILE_SIZE);
     const adjacent_tiles = [
+      {x: x,  y: y}, //the one we're on
       {x: x,      y: y - 1}, //north
       {x: x - 1,  y: y}, //west
       {x: x,      y: y + 1}, //south
@@ -597,14 +623,14 @@ class Character {
 
     const x1 = onTile(loc.x); //top left corner
     const y1 = onTile(loc.y); //top left corner
-    const x2 = onTile(loc.x + PLAYER_SIZE) //top right corner
+    const x2 = onTile(loc.x + 34) //top right corner
     const y2 = y1; //top right corner
     const x3 = x1; //bottom left corner
-    const y3 = onTile(loc.y + PLAYER_SIZE); //bottom left corner
+    const y3 = onTile(loc.y + 47); //bottom left corner
     const x4 = x2 //bottom right corner
     const y4 = y3;  //bottom right corner
 
-    return (isPointValid(x1,y1) && isPointValid(x2,y2) && isPointValid(x3,y3) && isPointValid(x4,y4));
+    return (isPointValid(x3,y3) && isPointValid(x4,y4));
   }
 
   teleport(x, y) {
@@ -616,14 +642,14 @@ class Player extends Character {
   constructor(dungeon) {
     super();
     const SPR = "img_prod/s_pc_";
-    const spr_w = 34;
-    const spr_h = 47;
+    this.w = 34;
+    this.h = 47;
     this.animated = true;
     this.SPEED = TILE_SIZE * 0.15;
-    this.s_idle = new Sprite(SPR+"idle-min.png", spr_w, spr_h);
-    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", spr_w, spr_h); })
+    this.s_idle = new Sprite(SPR+"idle-min.png", this.w, this.h);
+    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", this.w, this.h); })
     this.dungeon = dungeon;
-    this.torch = 10;
+    this.torch = 15;
     this.footstep = new Audio("audio_prod/footstep.mp3");
     this.footstep.volume = 0.2;
     this.footstepCadence = 100;
