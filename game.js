@@ -484,6 +484,8 @@ class Dungeon {
 class Game {
 
   constructor(level, player) {
+
+    this.game_text = "";
     this.current_consecutive_game = 0;
     this.TORCH_DEGRADE_INTERVAL = 12 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
@@ -496,10 +498,9 @@ class Game {
     this.player = player;
     this.bindKeys();
     this.placePlayer();
-    this.placeMonster();
+    setTimeout(() => {this.placeMonster()},1000);
     this.level.setPlayer(player);
-    this.setText(this.monster.ng_dialog[this.current_consecutive_game]);
-
+    //this.audioSetup();
     this.gameLoop();
     this.dirTransform = {
       "w": "n",
@@ -508,14 +509,38 @@ class Game {
       "d": "e",
       "e": "e"
     }
+  }
 
-
+  audioSetup() {
+    this.aCtx = new AudioContext();
+    this.ma_osc = this.aCtx.createOscillator();
+    this.ma_gain = this.aCtx.createGain();
+    this.ma_panner = this.aCtx.createPanner();
+    this.ma_panner.panningModel = 'equalpower';
+    this.ma_panner.refDistance = 1;
+    this.ma_panner.maxDistance = 10000;
+    this.ma_panner.rolloffFactor = 1;
+    this.ma_panner.coneInnerAngle = 360;
+    this.ma_panner.coneOuterAngle = 0;
+    this.ma_panner.coneOuterGain = 0;
+    this.ma_gain.gain.value = 0;
+    this.ma_osc.frequency.value = 35.75;
+    this.ma_gain.gain.value = 1;
+    this.ma_osc.type = 'triangle';
+    this.ma_osc.connect(this.ma_gain);
+    this.ma_osc.connect(this.aCtx.destination);
+    this.ma_osc.connect(this.ma_panner);
+    this.ma_gain.connect(this.aCtx.destination);
+    this.ma_panner.connect(this.aCtx.destination);
+    this.aCtx.listener.setPosition(this.player.loc.x, this.player.loc.y, 0);
+    this.ma_osc.start(0);
   }
 
   gameLoop() {
     this.level.render();
     this.torchLoop();
     this.textLoop();
+    //this.monsterSoundAura();
     window.requestAnimationFrame(this.gameLoop);
   }
 
@@ -526,6 +551,12 @@ class Game {
         this.player.torch = this.player.torch - 1;
       }
     }
+  }
+
+  monsterSoundAura() {
+    if (!this.monster) return;
+    this.ma_panner.setPosition(this.monster.loc.x * TILE_SIZE, this.monster.loc.y * TILE_SIZE, 0);
+    this.aCtx.listener.setPosition(this.player.loc.x, this.player.loc.y, 0);
   }
 
   setText(text) {
@@ -561,9 +592,11 @@ class Game {
 
   placeMonster() {
     const monster = new Monster();
-    monster.teleport(this.player.loc.x + (TILE_SIZE), this.player.loc.y)
+    const loc = this.level.randomRoom().randomLocationInRoom();
+    monster.teleport(loc.x, loc.y)
     this.level.placeCharacter(monster);
     this.monster = monster;
+    this.setText(this.monster.ng_dialog[this.current_consecutive_game]);
   }
 
   stopMovement(event) {
@@ -744,26 +777,28 @@ class Monster extends Enemy {
   }
 
   pixelate(ctx, l_x, l_y, w, h, blocksize) {
-    for(let x = l_x; x < l_x + w; x += blocksize / 2)
+    const sq_size = 7;
+    for(let x = l_x; x < l_x + w; x += blocksize)
     {
-        for(let y = l_y; y < l_y + h; y += blocksize / 2)
-        {
-            const max = 0.5;
-            const min = -0.5;
-            const random_x = Math.round(Math.random() * w)
-            const random_y = Math.round(Math.random() * h);
-            var pixel = ctx.getImageData(x + random_x, y + random_y, 1, 1);
-            ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
-            const render_x = random_x + (Math.random() * (max - min) + min);
-            const render_y = random_y + (Math.random() * (max - min) + min);
-            ctx.fillRect(x + render_x, y + render_y, 7, 7);
-        }
+      for(let y = l_y; y < l_y + h; y += blocksize)
+      {
+          const max = 0.5;
+          const min = -0.5;
+          const random_x = Math.round(Math.random() * w)
+          const random_y = Math.round(Math.random() * h);
+          var pixel = ctx.getImageData(x + random_x, y + random_y, 1, 1);
+          ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
+          const render_x = random_x + (Math.random() * (max - min) + min);
+          const render_y = random_y + (Math.random() * (max - min) + min);
+          ctx.fillRect(x + render_x, y + render_y, sq_size, sq_size);
+      }
+
     }
   }
 
   drawSprite(ctx, x, y) {
     ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
-    this.pixelate(ctx, x - this.w, y - this.h, this.w * 1.5, this.h * 1.5, 10);
+    this.pixelate(ctx, x-(this.w/2), y-(this.h/2), this.w, this.h, 5)
   }
 }
 
