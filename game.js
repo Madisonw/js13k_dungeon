@@ -1,12 +1,13 @@
 //TODO add the OIL
 //TODO add the pictures
 //TODO monster AI
-const IMG_FLOOR = new Image();
-IMG_FLOOR.src = "img_prod/floor-min.png";
-const IMG_WALL_N = new Image();
-IMG_WALL_N.src = "img_prod/wall_n.png";
-const IMG_WALL_ANY = new Image();
-IMG_WALL_ANY.src = "img_prod/wall_any.png";
+//TODO monster proximity noise
+//TODO actual monster artwork
+//TODO add more dialog
+const img = (uri) => {const i = new Image(); i.src = uri; return i; }
+const IMG_FLOOR = img("img_prod/floor-min.png");
+const IMG_WALL_N = img("img_prod/wall_n.png");
+const IMG_WALL_ANY = img("img_prod/wall_any.png");
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -66,6 +67,27 @@ class Sprite {
   }
 }
 
+class Item {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+class Oil extends Item {
+  constructor(x, y) {
+    super(x, y);
+    this.img = img("img_prod/oil.png");
+  }
+}
+
+class Picture extends Item {
+  constructor(x, y) {
+    super(x, y);
+    this.img = img("img_prod/picture.png");
+  }
+}
+
 class Room {
   constructor(x, y, width, height) {
     this.x = x;
@@ -85,6 +107,7 @@ class Room {
 class Dungeon {
   constructor(canvas) {
     this.characters = []
+    this.items = []
     this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
     this.map = new Array(MAP_SIZE);
@@ -340,8 +363,19 @@ class Dungeon {
     }
   }
 
-  generateMonster() {
+  generateItems() {
+    this.rooms.forEach((room) => {
+        const oil_loc = room.randomLocationInRoom();
+        const oil = new Oil(oil_loc.x, oil_loc.y);
+        this.addItem(oil);
+        const picture_loc = room.randomLocationInRoom();
+        const pic = new Picture(picture_loc.x, picture_loc.y);
+        this.addItem(pic);
+    })
+  }
 
+  addItem(item) {
+    this.items.push(item);
   }
 
   generate() {
@@ -349,7 +383,7 @@ class Dungeon {
     this.generateMaze();
     this.connectRooms(this.rooms);
     this.removeDeadEnds();
-    this.generateMonster();
+    this.generateItems();
     this.startingRoom = this.randomRoom();
   }
 
@@ -367,6 +401,7 @@ class Dungeon {
 
   render() {
     this.renderMap();
+    this.renderItems();
     this.renderCharacters();
     this.renderPlayerLightRadius();
   }
@@ -404,6 +439,14 @@ class Dungeon {
       const x = this.vpAdjustRealCoord(c.loc.x, "x");
       const y = this.vpAdjustRealCoord(c.loc.y, "y");
       c.drawSprite(this.ctx, x, y);
+    })
+  }
+
+  renderItems() {
+    this.items.forEach((item) => {
+      const x = this.vpAdjust(item.x, "x") * TILE_SIZE;
+      const y = this.vpAdjust(item.y, "y") * TILE_SIZE;
+      this.ctx.drawImage(item.img, x, y);
     })
   }
 
