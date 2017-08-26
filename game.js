@@ -531,7 +531,7 @@ class Game {
     this.ma_osc.connect(this.ma_gain);
     this.ma_gain.connect(this.ma_panner);
     this.ma_panner.connect(this.aCtx.destination);
-    
+
     this.aCtx.listener.setPosition(this.player.loc.x / TILE_SIZE, this.player.loc.y / TILE_SIZE, 0);
     this.ma_osc.start(0);
   }
@@ -766,8 +766,8 @@ class Monster extends Enemy {
       "oh, I wouldn't do that...",
       "you'll hurt yourself running like that.",
       "what is it you're trying to do?",
-      "no matter... i'll find you eventually.",
-      "i always find you eventually...",
+      "i'll find you eventually.",
+      "i always do...",
       "it's rude to run you know"
     ]
     this.ng_dialog = [
