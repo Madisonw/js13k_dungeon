@@ -500,7 +500,7 @@ class Game {
     this.placePlayer();
     setTimeout(() => {this.placeMonster()},1000);
     this.level.setPlayer(player);
-    //this.audioSetup();
+    this.audioSetup();
     this.gameLoop();
     this.dirTransform = {
       "w": "n",
@@ -516,23 +516,23 @@ class Game {
     this.ma_osc = this.aCtx.createOscillator();
     this.ma_gain = this.aCtx.createGain();
     this.ma_panner = this.aCtx.createPanner();
-    this.ma_panner.panningModel = 'equalpower';
+    this.ma_panner.panningModel = 'HRTF';
+    this.ma_panner.distanceModel = 'inverse';
     this.ma_panner.refDistance = 1;
-    this.ma_panner.maxDistance = 10000;
+    this.ma_panner.maxDistance = MAP_SIZE;
     this.ma_panner.rolloffFactor = 1;
     this.ma_panner.coneInnerAngle = 360;
     this.ma_panner.coneOuterAngle = 0;
     this.ma_panner.coneOuterGain = 0;
-    this.ma_gain.gain.value = 0;
     this.ma_osc.frequency.value = 35.75;
-    this.ma_gain.gain.value = 1;
+    this.ma_gain.gain.value = 2;
     this.ma_osc.type = 'triangle';
+
     this.ma_osc.connect(this.ma_gain);
-    this.ma_osc.connect(this.aCtx.destination);
-    this.ma_osc.connect(this.ma_panner);
-    this.ma_gain.connect(this.aCtx.destination);
+    this.ma_gain.connect(this.ma_panner);
     this.ma_panner.connect(this.aCtx.destination);
-    this.aCtx.listener.setPosition(this.player.loc.x, this.player.loc.y, 0);
+    
+    this.aCtx.listener.setPosition(this.player.loc.x / TILE_SIZE, this.player.loc.y / TILE_SIZE, 0);
     this.ma_osc.start(0);
   }
 
@@ -540,7 +540,7 @@ class Game {
     this.level.render();
     this.torchLoop();
     this.textLoop();
-    //this.monsterSoundAura();
+    this.monsterSoundAura();
     window.requestAnimationFrame(this.gameLoop);
   }
 
@@ -555,8 +555,8 @@ class Game {
 
   monsterSoundAura() {
     if (!this.monster) return;
-    this.ma_panner.setPosition(this.monster.loc.x * TILE_SIZE, this.monster.loc.y * TILE_SIZE, 0);
-    this.aCtx.listener.setPosition(this.player.loc.x, this.player.loc.y, 0);
+    this.ma_panner.setPosition((this.monster.loc.x + (this.monster.w / 2)) / TILE_SIZE, ((this.monster.loc.y + (this.monster.h / 2)) / TILE_SIZE), 0);
+    this.aCtx.listener.setPosition(this.player.loc.x / TILE_SIZE, this.player.loc.y / TILE_SIZE, 0);
   }
 
   setText(text) {
@@ -592,7 +592,8 @@ class Game {
 
   placeMonster() {
     const monster = new Monster();
-    const loc = this.level.randomRoom().randomLocationInRoom();
+    //const loc = this.level.randomRoom().randomLocationInRoom();
+    const loc = this.player.loc;
     monster.teleport(loc.x, loc.y)
     this.level.placeCharacter(monster);
     this.monster = monster;
