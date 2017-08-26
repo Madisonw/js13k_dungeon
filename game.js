@@ -1,9 +1,7 @@
 //TODO add the OIL
 //TODO add the pictures
 //TODO monster AI
-//TODO monster proximity noise
 //TODO actual monster artwork
-//TODO add more dialog
 const img = (uri) => {const i = new Image(); i.src = uri; return i; }
 const IMG_FLOOR = img("img_prod/floor-min.png");
 const IMG_WALL_N = img("img_prod/wall_n.png");
