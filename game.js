@@ -601,7 +601,7 @@ class Game {
     if (event.key == "e") {
       this.player.interact();
     } else {
-      this.player.move(this.dirTransform[event.key]);
+      if(this.dirTransform[event.key]) this.player.move(this.dirTransform[event.key]);
     }
 
   }
