@@ -674,9 +674,6 @@ class Character {
         if (this.isValidLoc(newLoc)) {
           this.loc = newLoc;
         }
-        if (moveTime % this.footstepCadence < 30 && this.footstep) {
-          this.footstep.play();
-        }
         if (moveTime % this.spriteCadence < 30) {
           this.nextSprite();
         }
@@ -744,9 +741,6 @@ class Player extends Character {
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", this.w, this.h); })
     this.dungeon = dungeon;
     this.torch = 12;
-    this.footstep = new Audio("audio_prod/footstep.mp3");
-    this.footstep.volume = 0.2;
-    this.footstepCadence = 100;
     this.spriteCadence = 100;
   }
 }
