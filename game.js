@@ -714,10 +714,10 @@ class Character {
 
     const x1 = onTile(loc.x); //top left corner
     const y1 = onTile(loc.y); //top left corner
-    const x2 = onTile(loc.x + 34) //top right corner
+    const x2 = onTile(loc.x + this.w) //top right corner
     const y2 = y1; //top right corner
     const x3 = x1; //bottom left corner
-    const y3 = onTile(loc.y + 47); //bottom left corner
+    const y3 = onTile(loc.y + this.h); //bottom left corner
     const x4 = x2 //bottom right corner
     const y4 = y3;  //bottom right corner
 
