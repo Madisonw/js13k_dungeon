@@ -6,7 +6,6 @@
 const img = (uri) => {const i = new Image(); i.src = uri; return i; }
 const IMG_FLOOR = img("img_prod/floor-min.png");
 const IMG_WALL_N = img("img_prod/wall_n-min.png");
-const IMG_WALL_ANY = img("img_prod/wall_any-min.png");
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -29,14 +28,14 @@ const TILE_SIZE = 64,
       C[_BG] = "black"; //Background Color
       C[_O] = "#777"; //Room Color
       C[_H] = C[_O]; //Hallway Color
-      C[_R] = "black"; //Rock Color
+      C[_R] = "#141111"; //Rock Color
+      C[_R_N] = C[_R]; //Rock Color
       C[_D] = "#513520"; //Door Color
       C[_B] = "#c1ad9e"; //Open Door Color
       C[_P] = "orange"; //Door Color
       IMG[_O] = IMG_FLOOR
       IMG[_H] = IMG_FLOOR
       IMG[_R_N] = IMG_WALL_N
-      IMG[_R] = IMG_WALL_ANY
       IMG[_D] = IMG_FLOOR
       IMG[_B] = IMG_FLOOR
 
@@ -415,7 +414,8 @@ class Dungeon {
         if (map[y] && map[y][x]) {
           const lx = this.vpAdjust(x,"x") * TILE_SIZE;
           const ly = this.vpAdjust(y,"y") * TILE_SIZE;
-          this.ctx.drawImage(IMG[map[y][x]], lx, ly, TILE_SIZE, TILE_SIZE);
+          if (C[map[y][x]]){this.ctx.fillStyle=C[map[y][x]]; this.ctx.fillRect(lx, ly, TILE_SIZE+_, TILE_SIZE+_);};
+          if (IMG[map[y][x]]) this.ctx.drawImage(IMG[map[y][x]], lx-_, ly-_, TILE_SIZE+_, TILE_SIZE+_);
           if (map[y][x] == _D || map[y][x] == _B) {
             //its a door
             const status = (map[y][x] == _D) ? 0 : 1;
@@ -757,7 +757,7 @@ class Monster extends Enemy {
     this.w = 128;
     this.h = 64;
     this.s_idle = new Sprite(SPR+"w-min.png", this.w, this.h);
-    DIR.forEach((d) => { if(d=="n" || d=="s") {d = "w"} this["s_walk_"+d] = new Sprite(SPR+d+"-min.png", this.w, this.h); })
+    DIR.forEach((d) => {this["s_walk_"+d] = new Sprite(SPR+"w-min.png", this.w, this.h); })
     this.TILE = E_S;
     this.dialog = [
       "oh, I wouldn't do that...",
