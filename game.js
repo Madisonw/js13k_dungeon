@@ -1,5 +1,4 @@
 //TODO item pickup logic
-//TODO actual monster artwork
 //TODO monster AI
 //TODO game text logic
 
