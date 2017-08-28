@@ -5,8 +5,8 @@
 
 const img = (uri) => {const i = new Image(); i.src = uri; return i; }
 const IMG_FLOOR = img("img_prod/floor-min.png");
-const IMG_WALL_N = img("img_prod/wall_n.png");
-const IMG_WALL_ANY = img("img_prod/wall_any.png");
+const IMG_WALL_N = img("img_prod/wall_n-min.png");
+const IMG_WALL_ANY = img("img_prod/wall_any-min.png");
 const TILE_SIZE = 64,
       PLAYER_SIZE = TILE_SIZE / 2,
       MAP_SIZE = 50,
@@ -76,14 +76,14 @@ class Item {
 class Oil extends Item {
   constructor(x, y) {
     super(x, y);
-    this.img = img("img_prod/oil.png");
+    this.img = img("img_prod/oil-min.png");
   }
 }
 
 class Picture extends Item {
   constructor(x, y) {
     super(x, y);
-    this.img = img("img_prod/picture.png");
+    this.img = img("img_prod/picture-min.png");
   }
 }
 
@@ -110,8 +110,8 @@ class Dungeon {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
     this.map = new Array(MAP_SIZE);
-    this.s_door_ns = new Sprite("img_prod/s_doors_ns.png", TILE_SIZE, TILE_SIZE);
-    this.s_door_ew = new Sprite("img_prod/s_doors_ew.png", TILE_SIZE, TILE_SIZE);
+    this.s_door_ns = new Sprite("img_prod/s_doors_ns-min.png", TILE_SIZE, TILE_SIZE);
+    this.s_door_ew = new Sprite("img_prod/s_doors_ew-min.png", TILE_SIZE, TILE_SIZE);
     for (let y=0; y < MAP_SIZE; y++) {
       this.map[y] = new Array(MAP_SIZE);
       for (let x=0; x < MAP_SIZE; x++) {
