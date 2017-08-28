@@ -540,7 +540,9 @@ class Game {
     this.torchLoop();
     this.textLoop();
     this.monsterSoundAura();
-    window.requestAnimationFrame(this.gameLoop);
+    setTimeout(() => {
+      window.requestAnimationFrame(this.gameLoop);
+    },50)
   }
 
   torchLoop() {
@@ -756,10 +758,12 @@ class Enemy extends Character {
 class Monster extends Enemy {
   constructor() {
     super();
+    const SPR = "img_prod/monster_walk_";
     this.animated = true;
-    this.w = 200;
-    this.h = 200;
-    this.s_idle = new Sprite("slenderman.png", this.w, this.h);
+    this.w = 128;
+    this.h = 64;
+    this.s_idle = new Sprite(SPR+"w-min.png", this.w, this.h);
+    DIR.forEach((d) => { if(d=="n" || d=="s") {d = "w"} this["s_walk_"+d] = new Sprite(SPR+d+"-min.png", this.w, this.h); })
     this.TILE = E_S;
     this.dialog = [
       "oh, I wouldn't do that...",
@@ -776,21 +780,24 @@ class Monster extends Enemy {
     ]
   }
 
-  pixelate(ctx, l_x, l_y, w, h, blocksize) {
-    const sq_size = 7;
-    for(let x = l_x; x < l_x + w; x += blocksize)
+  pixelate(ctx, l_x, l_y, w, h, size) {
+    const probability_var = 2.0 //the closer this number is to 0.5, the less likely things will blur for this pixel. 1.8 is a good starting number.
+    for(let x = l_x; x < l_x + w; x += size)
     {
-      for(let y = l_y; y < l_y + h; y += blocksize)
+      for(let y = l_y; y < l_y + h; y += size)
       {
-          const max = 0.5;
-          const min = -0.5;
-          const random_x = Math.round(Math.random() * w)
-          const random_y = Math.round(Math.random() * h);
-          var pixel = ctx.getImageData(x + random_x, y + random_y, 1, 1);
-          ctx.fillStyle = "rgb("+pixel.data[0]+","+pixel.data[1]+","+pixel.data[2]+")";
-          const render_x = random_x + (Math.random() * (max - min) + min);
-          const render_y = random_y + (Math.random() * (max - min) + min);
-          ctx.fillRect(x + render_x, y + render_y, sq_size, sq_size);
+        if ((Math.random() * probability_var) > 0.5) {
+          const max = 0.3;
+          const min = -0.3;
+          var pixela = ctx.getImageData(x, y, size, size);
+          const render_x = x + (Math.random() * max);
+          const render_y = y + (Math.random() * max);
+          var pixelb = ctx.getImageData(render_x, render_y, size, size);
+          ctx.fillStyle = "rgb("+pixelb.data[0]+","+pixelb.data[1]+","+pixelb.data[2]+")";
+          ctx.fillRect(x,y, size, size);
+          ctx.fillStyle = "rgb("+pixela.data[0]+","+pixela.data[1]+","+pixela.data[2]+")";
+          ctx.fillRect(render_x,render_y, size, size);
+        }
       }
 
     }
@@ -798,7 +805,7 @@ class Monster extends Enemy {
 
   drawSprite(ctx, x, y) {
     ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
-    this.pixelate(ctx, x-(this.w/2), y-(this.h/2), this.w, this.h, 5)
+    this.pixelate(ctx, x, y, this.w, this.h, 8)
   }
 }
 
