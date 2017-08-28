@@ -6,11 +6,13 @@
 const img = (uri) => {const i = new Image(); i.src = uri; return i; }
 const IMG_FLOOR = img("img_prod/floor-min.png");
 const IMG_WALL_N = img("img_prod/wall_n-min.png");
-const TILE_SIZE = 64,
-      PLAYER_SIZE = TILE_SIZE / 2,
+const rd = Math.random;
+const fl = Math.floor;
+const TS = 64,
+      PLAYER_SIZE = TS / 2,
       MAP_SIZE = 50,
       VIEWPORT = 18,
-      VIEWPORT_SIZE = TILE_SIZE * VIEWPORT,
+      VIEWPORT_SIZE = TS * VIEWPORT,
       DIR = ["s", "n", "e", "w"],
       _ = 1, //Tile Padding
       _BG = "bg", //Background Tile
@@ -96,8 +98,8 @@ class Room {
 
   randomLocationInRoom() {
     return {
-      x: this.x + Math.floor(Math.random() * this.width),
-      y: this.y + Math.floor(Math.random() * this.height)
+      x: this.x + fl(rd() * this.width),
+      y: this.y + fl(rd() * this.height)
     };
   }
 }
@@ -109,8 +111,8 @@ class Dungeon {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext('2d');
     this.map = new Array(MAP_SIZE);
-    this.s_door_ns = new Sprite("img_prod/s_doors_ns-min.png", TILE_SIZE, TILE_SIZE);
-    this.s_door_ew = new Sprite("img_prod/s_doors_ew-min.png", TILE_SIZE, TILE_SIZE);
+    this.s_door_ns = new Sprite("img_prod/s_doors_ns-min.png", TS, TS);
+    this.s_door_ew = new Sprite("img_prod/s_doors_ew-min.png", TS, TS);
     for (let y=0; y < MAP_SIZE; y++) {
       this.map[y] = new Array(MAP_SIZE);
       for (let x=0; x < MAP_SIZE; x++) {
@@ -156,10 +158,10 @@ class Dungeon {
     }
 
     for (let i=0; i < ATTEMPTS; i++) {
-      const width = MIN_WIDTH + (Math.round(Math.random() * MAX_WIDTH));
-      const height = MIN_HEIGHT + (Math.round(Math.random() * MAX_HEIGHT));
-      const x = Math.round(Math.random() * (MAP_SIZE - width - 1));
-      const y =  Math.round(Math.random() * (MAP_SIZE - height - 1));
+      const width = MIN_WIDTH + (Math.round(rd() * MAX_WIDTH));
+      const height = MIN_HEIGHT + (Math.round(rd() * MAX_HEIGHT));
+      const x = Math.round(rd() * (MAP_SIZE - width - 1));
+      const y =  Math.round(rd() * (MAP_SIZE - height - 1));
       const room = new Room(x, y, width, height);
       if (isPlaceable(room)) {
         rooms.push(room);
@@ -188,7 +190,7 @@ class Dungeon {
     const m = this.map;
     const _ = 1;
     const randomDir = () => {
-      return DIR[Math.round(Math.random() * DIR.length)];
+      return DIR[Math.round(rd() * DIR.length)];
     }
 
     const floodFill = (x, y, targetC, replacementC, direction) => {
@@ -312,10 +314,10 @@ class Dungeon {
           }
         }
       }
-      //const totalConnectors = Math.ceil(Math.random() * 5)
+      //const totalConnectors = Math.ceil(rd() * 5)
       const totalConnectors = 4;
       for (let c = 0; c < totalConnectors; c++) {
-        const index = Math.round(Math.random() * (possibleConnectors.length - 1));
+        const index = Math.round(rd() * (possibleConnectors.length - 1));
         const coord = possibleConnectors[index];
         if (coord) {
           m[coord.y][coord.x] = _D;
@@ -386,7 +388,7 @@ class Dungeon {
   }
 
   randomRoom() {
-    return this.rooms[Math.round(Math.random() * (this.rooms.length - 1))]
+    return this.rooms[Math.round(rd() * (this.rooms.length - 1))]
   }
 
   toggleDoor(x, y) {
@@ -408,24 +410,19 @@ class Dungeon {
     const map = this.map;
     const p = this.player;
     this.ctx.fillStyle = C[_BG];
-    this.ctx.fillRect(1, 1, MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE);
-    for (let y = Math.floor(this.vpStart("y")); y < Math.floor(this.vpStart("y")) + VIEWPORT - _; y++) {
-      for (let x = Math.floor(this.vpStart("x")); x < Math.floor(this.vpStart("x")) + VIEWPORT - _; x++) {
+    this.ctx.fillRect(1, 1, MAP_SIZE * TS, MAP_SIZE * TS);
+    for (let y = fl(this.vpStart("y")); y < fl(this.vpStart("y")) + VIEWPORT - _; y++) {
+      for (let x = fl(this.vpStart("x")); x < fl(this.vpStart("x")) + VIEWPORT - _; x++) {
         if (map[y] && map[y][x]) {
-          const lx = this.vpAdjust(x,"x") * TILE_SIZE;
-          const ly = this.vpAdjust(y,"y") * TILE_SIZE;
-          if (C[map[y][x]]){this.ctx.fillStyle=C[map[y][x]]; this.ctx.fillRect(lx, ly, TILE_SIZE+_, TILE_SIZE+_);};
-          if (IMG[map[y][x]]) this.ctx.drawImage(IMG[map[y][x]], lx-_, ly-_, TILE_SIZE+_, TILE_SIZE+_);
+          const lx = this.vpAdjust(x,"x") * TS;
+          const ly = this.vpAdjust(y,"y") * TS;
+          if (C[map[y][x]]){this.ctx.fillStyle=C[map[y][x]]; this.ctx.fillRect(lx, ly, TS+_, TS+_);};
+          if (IMG[map[y][x]]) this.ctx.drawImage(IMG[map[y][x]], lx-_, ly-_, TS+_, TS+_);
           if (map[y][x] == _D || map[y][x] == _B) {
             //its a door
             const status = (map[y][x] == _D) ? 0 : 1;
-            if (map[y - 1][x] == _O || map[y + 1][x] == _O) {
-              //it's a north-south door
-              this.ctx.drawImage(...this.s_door_ns.getDrawArgsForIndex(status, lx, ly))
-            } else {
-              //its an east-west door
-              this.ctx.drawImage(...this.s_door_ew.getDrawArgsForIndex(status, lx, ly))
-            }
+            const d_dir = (map[y - 1][x] == _O || map[y + 1][x] == _O) ? "ns":"ew";
+            this.ctx.drawImage(...this["s_door_"+d_dir].getDrawArgsForIndex(status, lx, ly))
           }
         }
 
@@ -443,8 +440,8 @@ class Dungeon {
 
   renderItems() {
     this.items.forEach((item) => {
-      const x = this.vpAdjust(item.x, "x") * TILE_SIZE;
-      const y = this.vpAdjust(item.y, "y") * TILE_SIZE;
+      const x = this.vpAdjust(item.x, "x") * TS;
+      const y = this.vpAdjust(item.y, "y") * TS;
       this.ctx.drawImage(item.img, x, y);
     })
   }
@@ -454,11 +451,11 @@ class Dungeon {
   }
 
   vpAdjustRealCoord(val, axis) {
-    return val - this.vpStart(axis) * TILE_SIZE;
+    return val - this.vpStart(axis) * TS;
   }
 
   vpStart(axis) {
-    let result = this.player.loc[axis] / TILE_SIZE - (VIEWPORT / 2.5) + _;
+    let result = this.player.loc[axis] / TS - (VIEWPORT / 2.5) + _;
     if (result < 0) result = 0;
     return result;
   }
@@ -467,12 +464,12 @@ class Dungeon {
     if (!this.player) return false;
     const p = this.player;
     const loc = p.loc;
-    const x = this.vpAdjustRealCoord(loc.x, "x") + TILE_SIZE / 4;
-    const y = this.vpAdjustRealCoord(loc.y, "y") + TILE_SIZE / 4;
+    const x = this.vpAdjustRealCoord(loc.x, "x") + TS / 4;
+    const y = this.vpAdjustRealCoord(loc.y, "y") + TS / 4;
     const FLICKER_VARIANCE = 0.12;
     const TORCH = 3 - (p.torch - 10) * 0.30;
 
-    const gradient = this.ctx.createRadialGradient(x, y, VIEWPORT_SIZE / (TORCH + (Math.random()*FLICKER_VARIANCE)), x, y, 0);
+    const gradient = this.ctx.createRadialGradient(x, y, VIEWPORT_SIZE / (TORCH + (rd()*FLICKER_VARIANCE)), x, y, 0);
     gradient.addColorStop(0,"black");
     gradient.addColorStop(1,"rgba(0,0,0,0)");
     this.ctx.fillStyle = gradient;
@@ -516,13 +513,8 @@ class Game {
     this.ma_gain = this.aCtx.createGain();
     this.ma_panner = this.aCtx.createPanner();
     this.ma_panner.panningModel = 'HRTF';
-    this.ma_panner.distanceModel = 'inverse';
     this.ma_panner.refDistance = 1;
     this.ma_panner.maxDistance = MAP_SIZE;
-    this.ma_panner.rolloffFactor = 1;
-    this.ma_panner.coneInnerAngle = 360;
-    this.ma_panner.coneOuterAngle = 0;
-    this.ma_panner.coneOuterGain = 0;
     this.ma_osc.frequency.value = 35.75;
     this.ma_gain.gain.value = 2;
     this.ma_osc.type = 'triangle';
@@ -531,7 +523,7 @@ class Game {
     this.ma_gain.connect(this.ma_panner);
     this.ma_panner.connect(this.aCtx.destination);
 
-    this.aCtx.listener.setPosition(this.player.loc.x / TILE_SIZE, this.player.loc.y / TILE_SIZE, 0);
+    this.aCtx.listener.setPosition(this.player.loc.x / TS, this.player.loc.y / TS, 0);
     this.ma_osc.start(0);
   }
 
@@ -546,7 +538,7 @@ class Game {
   }
 
   torchLoop() {
-    const second = Math.floor(Math.floor(performance.now() - this.GAME_START) / 1000);
+    const second = fl(fl(performance.now() - this.GAME_START) / 1000);
     if (second > this.current_second) {
       if ((this.current_second % this.TORCH_DEGRADE_INTERVAL === 0)) {
         this.player.torch = this.player.torch - 1;
@@ -556,8 +548,8 @@ class Game {
 
   monsterSoundAura() {
     if (!this.monster) return;
-    this.ma_panner.setPosition((this.monster.loc.x + (this.monster.w / 2)) / TILE_SIZE, ((this.monster.loc.y + (this.monster.h / 2)) / TILE_SIZE), 0);
-    this.aCtx.listener.setPosition(this.player.loc.x / TILE_SIZE, this.player.loc.y / TILE_SIZE, 0);
+    this.ma_panner.setPosition((this.monster.loc.x + (this.monster.w / 2)) / TS, ((this.monster.loc.y + (this.monster.h / 2)) / TS), 0);
+    this.aCtx.listener.setPosition(this.player.loc.x / TS, this.player.loc.y / TS, 0);
   }
 
   setText(text) {
@@ -569,7 +561,7 @@ class Game {
     this.level.ctx.font = "24px Courier"
     this.level.ctx.fillStyle = "white"
     this.level.ctx.fillText(this.game_text.substr(0,this.current_text_letter), 100, 750);
-    const second = Math.floor(Math.floor(performance.now() - this.GAME_START) / 1000);
+    const second = fl(fl(performance.now() - this.GAME_START) / 1000);
     if (second > this.current_second && this.current_second % 1 === 0) {
       if (this.game_text.length > this.current_text_letter) {
         this.current_text_letter += 1;
@@ -585,9 +577,9 @@ class Game {
 
   placePlayer() {
     const startingRoom = this.level.startingRoom;
-    const x = startingRoom.x + Math.floor(startingRoom.width / 2);
-    const y = startingRoom.y + Math.floor(startingRoom.height / 2);
-    this.player.teleport(x * TILE_SIZE, y * TILE_SIZE);
+    const x = startingRoom.x + fl(startingRoom.width / 2);
+    const y = startingRoom.y + fl(startingRoom.height / 2);
+    this.player.teleport(x * TS, y * TS);
     this.level.placeCharacter(this.player);
   }
 
@@ -639,8 +631,8 @@ class Character {
   }
 
   interact() {
-    const x = Math.floor((this.loc.x + (this.w / 2)) / TILE_SIZE);
-    const y = Math.floor((this.loc.y + (this.h / 2)) / TILE_SIZE);
+    const x = fl((this.loc.x + (this.w / 2)) / TS);
+    const y = fl((this.loc.y + (this.h / 2)) / TS);
     const adjacent_tiles = [
       {x: x,  y: y}, //the one we're on
       {x: x,      y: y - 1}, //north
@@ -704,7 +696,7 @@ class Character {
 
   isValidLoc(loc) {
 
-    const onTile = (coord) => {return Math.floor(coord / TILE_SIZE)};
+    const onTile = (coord) => {return fl(coord / TS)};
 
     const isPointValid = (x, y) => {
       if (!this.dungeon.map[y] || !this.dungeon.map[y][x]) return false;
@@ -736,7 +728,7 @@ class Player extends Character {
     this.w = 34;
     this.h = 47;
     this.animated = true;
-    this.SPEED = TILE_SIZE * 0.15;
+    this.SPEED = TS * 0.15;
     this.s_idle = new Sprite(SPR+"idle-min.png", this.w, this.h);
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", this.w, this.h); })
     this.dungeon = dungeon;
@@ -780,12 +772,12 @@ class Monster extends Enemy {
     {
       for(let y = l_y; y < l_y + h; y += size)
       {
-        if ((Math.random() * probability_var) > 0.5) {
+        if ((rd() * probability_var) > 0.5) {
           const max = 0.3;
           const min = -0.3;
           var pixela = ctx.getImageData(x, y, size, size);
-          const render_x = x + (Math.random() * max);
-          const render_y = y + (Math.random() * max);
+          const render_x = x + (rd() * max);
+          const render_y = y + (rd() * max);
           var pixelb = ctx.getImageData(render_x, render_y, size, size);
           ctx.fillStyle = "rgb("+pixelb.data[0]+","+pixelb.data[1]+","+pixelb.data[2]+")";
           ctx.fillRect(x,y, size, size);
