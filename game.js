@@ -42,27 +42,27 @@ const TS = 64,
       IMG[_B] = IMG_FLOOR
 
 class Sprite {
-  constructor(src, width, height) {
+  constructor(src, w, h, r_w, r_h) {
     this.img = new Image();
     this.img.src = src;
-    this.width = width;
-    this.height = height;
+    this.w = w;
+    this.h = h;
+    this.r_w = r_w || w;
+    this.r_h = r_h || h;
     this.getDrawArgsForIndex = this.getDrawArgsForIndex.bind(this);
   }
 
   getDrawArgsForIndex(frame_index, dest_x, dest_y) {
-    const w = this.width;
-    const h = this.height;
     return [
       this.img,
-      frame_index * w, //frame index times frame width
+      frame_index * this.w, //frame index times frame width
       0,
-      w,
-      h,
+      this.w,
+      this.h,
       dest_x,
       dest_y,
-      w,
-      h
+      this.r_w,
+      this.r_h
       ]
   }
 }
@@ -729,8 +729,8 @@ class Player extends Character {
     this.h = 47;
     this.animated = true;
     this.SPEED = TS * 0.15;
-    this.s_idle = new Sprite(SPR+"idle-min.png", this.w, this.h);
-    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png", this.w, this.h); })
+    this.s_idle = new Sprite(SPR+"idle-min.png", this.w/2, this.h/2, this.w, this.h);
+    DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png",  this.w/2, this.h/2, this.w, this.h); })
     this.dungeon = dungeon;
     this.torch = 12;
     this.spriteCadence = 100;
@@ -748,8 +748,8 @@ class Monster extends Enemy {
     this.animated = true;
     this.w = 128;
     this.h = 64;
-    this.s_idle = new Sprite(SPR+"w-min.png", this.w, this.h);
-    DIR.forEach((d) => {this["s_walk_"+d] = new Sprite(SPR+"w-min.png", this.w, this.h); })
+    this.s_idle = new Sprite(SPR+"w-min.png", this.w/2, this.h/2, this.w, this.h);
+    DIR.forEach((d) => {this["s_walk_"+d] = new Sprite(SPR+"w-min.png", this.w/2, this.h/2, this.w, this.h); })
     this.TILE = E_S;
     this.dialog = [
       "oh, I wouldn't do that...",
