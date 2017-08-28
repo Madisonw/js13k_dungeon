@@ -18,3 +18,8 @@ CODE optimization
 13,471 bytes
 TARGET: 13,312
 159 OVER
+
+image resampling
+11,828 bytes
+TARGET: 13,312
+1,484 UNDER
