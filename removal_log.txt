@@ -13,3 +13,8 @@ REMOVED wall and ceiling texture
 13,530 bytes
 TARGET: 13,312
 218 OVER
+
+CODE optimization
+13,471 bytes
+TARGET: 13,312
+159 OVER
