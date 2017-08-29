@@ -495,7 +495,7 @@ class Game {
     this.placePlayer();
     setTimeout(() => {this.placeMonster()},1000);
     this.level.setPlayer(player);
-    this.audioSetup();
+    //this.audioSetup();
     this.gameLoop();
     this.dirTransform = {
       "w": "n",
@@ -530,10 +530,41 @@ class Game {
     this.level.render();
     this.torchLoop();
     this.textLoop();
-    this.monsterSoundAura();
+    //this.monsterSoundAura();
+    if (this.monster) this.AI(this.monster, this.player, this.level, this.level.ctx);
     setTimeout(() => {
       window.requestAnimationFrame(this.gameLoop);
     },50)
+  }
+
+
+  AI(monster, player, level, ctx) {
+    const m = level.map;
+    const findShortestPath = () => {
+      const mx = fl(monster.loc.x / TS);
+      const my = fl(monster.loc.y / TS);
+      const px = fl(player.loc.x / TS);
+      const py = fl(player.loc.y / TS);
+      const queue = [{x:mx,:y:my}];
+      let cx = mx;
+      let cy = my;
+      while (queue.length > 0) {
+        DIR.forEach(d => {
+          const valid = isValidMove(d, cx, cy);
+        })
+      }
+      return path;
+    }
+    const path = findShortestPath();
+    console.log(path);
+    if (ctx) {
+      ctx.fillStyle="green";
+      path.forEach(c => {
+        console.log(this.level.vpAdjust(c.x, "x")*TS, this.level.vpAdjust(c.y, "y")*TS, TS/2, TS/2);
+        ctx.fillRect(this.level.vpAdjust(c.x, "x")*TS, this.level.vpAdjust(c.y, "y")*TS, TS/2, TS/2)
+      })
+
+    }
   }
 
   torchLoop() {
@@ -790,7 +821,7 @@ class Monster extends Enemy {
 
   drawSprite(ctx, x, y) {
     ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
-    this.pixelate(ctx, x, y, this.w, this.h, 8)
+    //this.pixelate(ctx, x, y, this.w, this.h, 8)
   }
 }
 
