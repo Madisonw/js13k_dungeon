@@ -11,6 +11,7 @@ const TS = 64,
       PLAYER_SIZE = TS / 2,
       MAP_SIZE = 50,
       VIEWPORT = 18,
+      INFINITY = 1/0,
       VIEWPORT_SIZE = TS * VIEWPORT,
       DIR = ["s", "n", "e", "w"],
       _ = 1, //Tile Padding
@@ -39,6 +40,92 @@ const TS = 64,
       IMG[_R_N] = IMG_WALL_N
       IMG[_D] = IMG_FLOOR
       IMG[_B] = IMG_FLOOR
+
+class PriorityQueue {
+  constructor() {
+    this._nodes = [];
+  }
+
+  enqueue(priority, key) {
+    this._nodes.push({key: key, priority: priority });
+    this.sort();
+  }
+  dequeue() {
+    return this._nodes.shift().key;
+  }
+  sort() {
+    this._nodes.sort(function (a, b) {
+      return a.priority - b.priority;
+    });
+  }
+  isEmpty() {
+    return !this._nodes.length;
+  }
+}
+
+class Graph {
+
+  constructor() {
+    this.vertices = {};
+  }
+
+  addVertex(name, edges){
+    this.vertices[name] = edges;
+  }
+
+  shortestPath(start, finish) {
+    let nodes = new PriorityQueue(),
+        distances = {},
+        previous = {},
+        path = [],
+        smallest, vertex, neighbor, alt;
+
+    for(vertex in this.vertices) {
+      if(vertex === start) {
+        distances[vertex] = 0;
+        nodes.enqueue(0, vertex);
+      }
+      else {
+        distances[vertex] = INFINITY;
+        nodes.enqueue(INFINITY, vertex);
+      }
+
+      previous[vertex] = null;
+    }
+
+    while(!nodes.isEmpty()) {
+      smallest = nodes.dequeue();
+
+      if(smallest === finish) {
+        path = [];
+
+        while(previous[smallest]) {
+          path.push(smallest);
+          smallest = previous[smallest];
+        }
+
+        break;
+      }
+
+      if(!smallest || distances[smallest] === INFINITY){
+        continue;
+      }
+
+      for(neighbor in this.vertices[smallest]) {
+        alt = distances[smallest] + this.vertices[smallest][neighbor];
+
+        if(alt < distances[neighbor]) {
+          distances[neighbor] = alt;
+          previous[neighbor] = smallest;
+
+          nodes.enqueue(alt, neighbor);
+        }
+      }
+    }
+
+    return path;
+  };
+}
 
 class Sprite {
   constructor(src, w, h, r_w, r_h) {
@@ -384,6 +471,31 @@ class Dungeon {
     this.removeDeadEnds();
     this.generateItems();
     this.startingRoom = this.randomRoom();
+    this.buildGraph();
+  }
+
+  buildGraph() {
+
+    const isWalkable = (node) => {
+      return (node != _R && node != _R_N && typeof(node) != undefined);
+    }
+    const edges = (y,x) => {
+      const result = {};
+      if(this.map[y-1] && isWalkable(this.map[y-1][x])) result[(y-1)+"|"+x] = 1; //n
+      if(this.map[y+1] && isWalkable(this.map[y+1][x])) result[(y+1)+"|"+x] = 1; //s
+      if(isWalkable(this.map[y][x+1])) result[y+"|"+(x+1)] = 1; //e
+      if(isWalkable(this.map[y][x-1])) result[y+"|"+(x-1)] = 1; //w
+      return result;
+    }
+
+    this.graph = new Graph();
+    this.map.forEach((row,y) => {
+      row.forEach((node,x) => {
+        if (isWalkable(node)) {
+          this.graph.addVertex(y+"|"+x, edges(y,x))
+        }
+      })
+    })
   }
 
   randomRoom() {
@@ -482,6 +594,7 @@ class Game {
 
     this.game_text = "";
     this.current_consecutive_game = 0;
+    this.game_active = true;
     this.TORCH_DEGRADE_INTERVAL = 12 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
     this.GAME_START = performance.now();
@@ -495,7 +608,7 @@ class Game {
     this.placePlayer();
     setTimeout(() => {this.placeMonster()},1000);
     this.level.setPlayer(player);
-    //this.audioSetup();
+    this.audioSetup();
     this.gameLoop();
     this.dirTransform = {
       "w": "n",
@@ -527,44 +640,48 @@ class Game {
   }
 
   gameLoop() {
+    if (!this.game_active) return;
     this.level.render();
     this.torchLoop();
     this.textLoop();
-    //this.monsterSoundAura();
+    this.monsterSoundAura();
     if (this.monster) this.AI(this.monster, this.player, this.level, this.level.ctx);
     setTimeout(() => {
       window.requestAnimationFrame(this.gameLoop);
     },50)
   }
 
+  loseGame() {
+    console.log("game loss");
+    this.game_active = false;
+    this.current_consecutive_game++;
+    this.gameOverScreen();
+  }
+  gameOverScreen() {
+
+  }
 
   AI(monster, player, level, ctx) {
-    const m = level.map;
-    const findShortestPath = () => {
-      const mx = fl(monster.loc.x / TS);
-      const my = fl(monster.loc.y / TS);
-      const px = fl(player.loc.x / TS);
-      const py = fl(player.loc.y / TS);
-      const queue = [{x:mx,:y:my}];
-      let cx = mx;
-      let cy = my;
-      while (queue.length > 0) {
-        DIR.forEach(d => {
-          const valid = isValidMove(d, cx, cy);
-        })
-      }
-      return path;
-    }
-    const path = findShortestPath();
-    console.log(path);
-    if (ctx) {
-      ctx.fillStyle="green";
-      path.forEach(c => {
-        console.log(this.level.vpAdjust(c.x, "x")*TS, this.level.vpAdjust(c.y, "y")*TS, TS/2, TS/2);
-        ctx.fillRect(this.level.vpAdjust(c.x, "x")*TS, this.level.vpAdjust(c.y, "y")*TS, TS/2, TS/2)
-      })
+    const mx = fl(monster.loc.x / TS);
+    const my = fl(monster.loc.y / TS);
+    const px = fl(player.loc.x / TS);
+    const py = fl((player.loc.y + player.h) / TS);
 
+    const path = level.graph.shortestPath(py+"|"+px, my+"|"+mx);
+    if (!path.length && (mx != px && my != py)) {
+      //monster is stuck, gotta teleport him elsewhere
+      const loc = level.randomRoom().randomLocationInRoom();
+      return monster.teleport(loc.x * TS, loc.y * TS);
     }
+    if (path.length < 2) return this.loseGame();
+    const spl = path[1].split("|");
+    const nextyx = {y: spl[0], x: spl[1]};
+    let dir = null;
+    if      (nextyx.y < my) {dir = "n"}
+    else if (nextyx.y > my) {dir = "s"}
+    else if (nextyx.x < mx) {dir = "w"}
+    else if (nextyx.x > mx) {dir = "e"}
+    monster.move(dir);
   }
 
   torchLoop() {
@@ -614,10 +731,10 @@ class Game {
   }
 
   placeMonster() {
-    const monster = new Monster();
-    //const loc = this.level.randomRoom().randomLocationInRoom();
-    const loc = this.player.loc;
-    monster.teleport(loc.x, loc.y)
+    const monster = new Monster(this.level);
+    const loc = this.level.randomRoom().randomLocationInRoom();
+
+    monster.teleport(loc.x * TS, loc.y * TS)
     this.level.placeCharacter(monster);
     this.monster = monster;
     this.setText(this.monster.ng_dialog[this.current_consecutive_game]);
@@ -724,6 +841,10 @@ class Character {
     }
   }
 
+  isValidWalkingTile(t) {
+    return (t == _O || t == _H || t == _B);
+  }
+
   isValidLoc(loc) {
 
     const onTile = (coord) => {return fl(coord / TS)};
@@ -731,15 +852,15 @@ class Character {
     const isPointValid = (x, y) => {
       if (!this.dungeon.map[y] || !this.dungeon.map[y][x]) return false;
       const d_tile = this.dungeon.map[y][x];
-      return (d_tile == _O || d_tile == _H || d_tile == _B); //room, hallway, or open door tile.
+      return this.isValidWalkingTile(d_tile)
     }
 
     const x1 = onTile(loc.x); //top left corner
     const y1 = onTile(loc.y); //top left corner
-    const x2 = onTile(loc.x + this.w) //top right corner
+    const x2 = onTile(loc.x + this.cw) //top right corner
     const y2 = y1; //top right corner
     const x3 = x1; //bottom left corner
-    const y3 = onTile(loc.y + this.h); //bottom left corner
+    const y3 = onTile(loc.y + this.ch); //bottom left corner
     const x4 = x2 //bottom right corner
     const y4 = y3;  //bottom right corner
 
@@ -755,8 +876,8 @@ class Player extends Character {
   constructor(dungeon) {
     super();
     const SPR = "img_prod/s_pc_";
-    this.w = 34;
-    this.h = 47;
+    this.w = this.cw = 34;
+    this.h = this.ch = 47;
     this.animated = true;
     this.SPEED = TS * 0.15;
     this.s_idle = new Sprite(SPR+"idle-min.png", this.w/2, this.h/2, this.w, this.h);
@@ -772,15 +893,19 @@ class Enemy extends Character {
 }
 
 class Monster extends Enemy {
-  constructor() {
+  constructor(dungeon) {
     super();
     const SPR = "img_prod/monster_walk_";
     this.animated = true;
+    this.SPEED = TS * 0.09;
+    this.spriteCadence = 100;
     this.w = 128;
     this.h = 64;
+    this.cw = this.ch = 0;
     this.s_idle = new Sprite(SPR+"w-min.png", this.w/2, this.h/2, this.w, this.h);
     DIR.forEach((d) => {this["s_walk_"+d] = new Sprite(SPR+"w-min.png", this.w/2, this.h/2, this.w, this.h); })
     this.TILE = E_S;
+    this.dungeon = dungeon;
     this.dialog = [
       "oh, I wouldn't do that...",
       "you'll hurt yourself running like that.",
@@ -794,6 +919,10 @@ class Monster extends Enemy {
       "oh... you're back.",
       "I just want to talk this time, I promise..."
     ]
+  }
+
+  isValidWalkingTile(t) {
+    return (t == _O || t == _H || t == _B || t == _D); //room, hallway, open door, or closed door
   }
 
   pixelate(ctx, l_x, l_y, w, h, size) {
