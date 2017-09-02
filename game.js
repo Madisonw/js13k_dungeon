@@ -677,7 +677,6 @@ class Game {
     const handler = (evt) => {if (evt.key == "e") {document.removeEventListener("keypress",handler); this.gameStartScreen = false; this.newGame()}}
     document.addEventListener("keypress", handler);
     const title = "Are You Lost?";
-
     this.gameStartScreen = true;
     const render = () => {
       this.ctx.fillStyle = "#000";
