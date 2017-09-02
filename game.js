@@ -683,16 +683,16 @@ class Game {
       this.ctx.fillRect(0,0,1000,1000);
       this.ctx.fillStyle = "#fff";
       this.ctx.font = "83px Courier"
-      this.ctx.fillText(title, 100, 400);
+      this.ctx.fillText(title, 100, 300);
       this.ctx.font = "18px Courier"
-      this.ctx.fillText("You'll need headphones to hear me coming.", 180, 460);
-      this.ctx.fillText("Use [W][A][S][D] to run away. [E] to interact.", 160, 530);
+      this.ctx.fillText("You'll need headphones to hear me coming.", 180, 360);
+      this.ctx.fillText("Use [W][A][S][D] to run away. [E] to interact.", 160, 430);
       this.ctx.font = "24px Courier"
-      this.ctx.fillText("Press [E] to play with me.", 210, 630);
-      this.pixelate(this.ctx, 500, 350, 300, 83, 5, rd()*3);//for the title
-      this.pixelate(this.ctx, 460, 440, 160, 18, 3, rd()*3);//for the headphones reminder
-      this.pixelate(this.ctx, 370, 510, 90, 18, 3, rd()*3);//run away
-      this.pixelate(this.ctx, 390, 610, 180, 24, 3, rd()*3);//play with me
+      this.ctx.fillText("Press [E] to play with me.", 210, 530);
+      this.pixelate(this.ctx, 500, 250, 300, 83, 5, rd()*3);//for the title
+      this.pixelate(this.ctx, 460, 340, 160, 18, 3, rd()*3);//for the headphones reminder
+      this.pixelate(this.ctx, 370, 410, 90, 18, 3, rd()*3);//run away
+      this.pixelate(this.ctx, 390, 510, 180, 24, 3, rd()*3);//play with me
       if (this.gameStartScreen) window.requestAnimationFrame(render);
     }
     render();
