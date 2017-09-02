@@ -450,6 +450,7 @@ class Dungeon {
   }
 
   generateItems() {
+    this.item_index = {};
     this.rooms.forEach((room) => {
         const oil_loc = room.randomLocationInRoom();
         const oil = new Oil(oil_loc.x, oil_loc.y);
@@ -462,6 +463,17 @@ class Dungeon {
 
   addItem(item) {
     this.items.push(item);
+    this.item_index[item.y+"|"+item.x] = item;
+  }
+
+  getItemInLoc(x, y) {
+    const t_item = this.item_index[y+"|"+x];
+    if (t_item) {
+      this.item_index[y+"|"+x] = undefined;
+      return t_item;
+    } else {
+      return null;
+    }
   }
 
   generate() {
@@ -551,6 +563,7 @@ class Dungeon {
 
   renderItems() {
     this.items.forEach((item) => {
+      if (!this.item_index[item.y+"|"+item.x]) return;
       const x = this.vpAdjust(item.x, "x") * TS;
       const y = this.vpAdjust(item.y, "y") * TS;
       this.ctx.drawImage(item.img, x, y);
@@ -590,26 +603,28 @@ class Dungeon {
 
 class Game {
 
-  constructor(level, player) {
-
+  constructor(canvas) {
+    this.level = new Dungeon(canvas);
+    this.ctx = canvas.getContext('2d');
     this.game_text = "";
     this.current_consecutive_game = 0;
     this.game_active = true;
-    this.TORCH_DEGRADE_INTERVAL = 12 //seconds
+    this.TORCH_DEGRADE_INTERVAL = 12000 //seconds
     this.TORCH_DEGRADE_RATE = 1 //out of ten
-    this.GAME_START = performance.now();
     this.current_second = 0;
+    this.TEXT_PRINT_INTERVAL = 500;
+    this.objective_counter = 0;
+    this.OBJECTIVE_GOAL = 12;
+    this.torchCounter = 0;
+    this.textCounter = 0;
     this.changeDirection = this.changeDirection.bind(this);
     this.stopMovement = this.stopMovement.bind(this);
     this.gameLoop = this.gameLoop.bind(this);
-    this.level = level;
-    this.player = player;
     this.bindKeys();
     this.placePlayer();
     setTimeout(() => {this.placeMonster()},1000);
-    this.level.setPlayer(player);
+    this.level.setPlayer(this.player);
     this.audioSetup();
-    this.gameLoop();
     this.dirTransform = {
       "w": "n",
       "a": "w",
@@ -617,6 +632,7 @@ class Game {
       "d": "e",
       "e": "e"
     }
+    this.gameStartScreen();
   }
 
   audioSetup() {
@@ -657,8 +673,71 @@ class Game {
     this.current_consecutive_game++;
     this.gameOverScreen();
   }
+  gameStartScreen() {
+    const handler = (evt) => {if (evt.key == "e") {document.removeEventListener("keypress",handler); this.gameStartScreen = false; this.newGame()}}
+    document.addEventListener("keypress", handler);
+    const title = "Are You Lost?";
+
+    this.gameStartScreen = true;
+    const render = () => {
+      this.ctx.fillStyle = "#000";
+      this.ctx.fillRect(0,0,1000,1000);
+      this.ctx.fillStyle = "#fff";
+      this.ctx.font = "83px Courier"
+      this.ctx.fillText(title, 100, 400);
+      this.ctx.font = "18px Courier"
+      this.ctx.fillText("You'll need headphones to hear me coming.", 180, 460);
+      this.ctx.fillText("Use [W][A][S][D] to run away. [E] to interact.", 160, 530);
+      this.ctx.font = "24px Courier"
+      this.ctx.fillText("Press [E] to play with me.", 210, 630);
+      this.pixelate(this.ctx, 500, 350, 300, 83, 5, rd()*3);//for the title
+      this.pixelate(this.ctx, 460, 440, 160, 18, 3, rd()*3);//for the headphones reminder
+      this.pixelate(this.ctx, 370, 510, 90, 18, 3, rd()*3);//run away
+      this.pixelate(this.ctx, 390, 610, 180, 24, 3, rd()*3);//play with me
+      if (this.gameStartScreen) window.requestAnimationFrame(render);
+    }
+    render();
+
+  }
+
+  newGame() {
+    this.GAME_START = performance.now();
+    this.gameLoop();
+  }
+
   gameOverScreen() {
 
+  }
+  winGame() {
+    console.log("game win");
+    this.game_active = false;
+    this.gameWinScreen();
+  }
+  gameWinScreen() {
+
+  }
+
+  pixelate(ctx, l_x, l_y, w, h, size, intensity) {
+    const probability_var = intensity //the closer this number is to 0.5, the less likely things will blur for this pixel. 1.8 is a good starting number.
+    for(let x = l_x; x < l_x + w; x += size)
+    {
+      for(let y = l_y; y < l_y + h; y += size)
+      {
+        if ((rd() * probability_var) > 0.5) {
+          const max = 0.3;
+          const min = -0.3;
+          var pixela = ctx.getImageData(x, y, size, size);
+          const render_x = x + (rd() * max);
+          const render_y = y + (rd() * max);
+          var pixelb = ctx.getImageData(render_x, render_y, size, size);
+          ctx.fillStyle = "rgb("+pixelb.data[0]+","+pixelb.data[1]+","+pixelb.data[2]+")";
+          ctx.fillRect(x,y, size, size);
+          ctx.fillStyle = "rgb("+pixela.data[0]+","+pixela.data[1]+","+pixela.data[2]+")";
+          ctx.fillRect(render_x,render_y, size, size);
+        }
+      }
+
+    }
   }
 
   AI(monster, player, level, ctx) {
@@ -685,11 +764,10 @@ class Game {
   }
 
   torchLoop() {
-    const second = fl(fl(performance.now() - this.GAME_START) / 1000);
-    if (second > this.current_second) {
-      if ((this.current_second % this.TORCH_DEGRADE_INTERVAL === 0)) {
-        this.player.torch = this.player.torch - 1;
-      }
+    const elapsed_time = performance.now() - this.GAME_START;
+    if (fl(elapsed_time / this.TORCH_DEGRADE_INTERVAL) > this.torchCounter) {
+      this.player.torch = this.player.torch - 1;
+      this.torchCounter++;
     }
   }
 
@@ -702,18 +780,19 @@ class Game {
   setText(text) {
     this.game_text = text;
     this.current_text_letter = 0;
+    this.textCounter = 0;
   }
 
   textLoop() {
     this.level.ctx.font = "24px Courier"
     this.level.ctx.fillStyle = "white"
     this.level.ctx.fillText(this.game_text.substr(0,this.current_text_letter), 100, 750);
-    const second = fl(fl(performance.now() - this.GAME_START) / 1000);
-    if (second > this.current_second && this.current_second % 1 === 0) {
+    const elapsed_time = performance.now() - this.GAME_START;
+    if (fl(elapsed_time / this.TEXT_PRINT_INTERVAL) > this.textCounter) {
       if (this.game_text.length > this.current_text_letter) {
-        this.current_text_letter += 1;
+        this.current_text_letter++;
+        this.textCounter++;
       }
-      this.current_second = second;
     }
   }
 
@@ -722,7 +801,21 @@ class Game {
     document.addEventListener("keyup",this.stopMovement)
   }
 
+  itemPickupCallback(character, item) {
+    if (item instanceof Picture) {
+      this.advanceObjective();
+    }
+  }
+
+  advanceObjective() {
+    this.objective_counter++;
+    if (this.objective_counter >= this.OBJECTIVE_GOAL) {
+      this.winGame();
+    }
+  }
+
   placePlayer() {
+    this.player = new Player(this.level, this.itemPickupCallback.bind(this));
     const startingRoom = this.level.startingRoom;
     const x = startingRoom.x + fl(startingRoom.width / 2);
     const y = startingRoom.y + fl(startingRoom.height / 2);
@@ -794,7 +887,21 @@ class Character {
       if (t_loc == _D || t_loc == _B) {
         this.dungeon.toggleDoor(loc.x, loc.y);
       }
+      const item = this.dungeon.getItemInLoc(loc.x,loc.y);
+      if (item) this.pickupItem(item);
     })
+  }
+
+  pickupItem(item) {
+    if (item instanceof Oil) {
+      if (this.torch + 4 > 12) {
+        this.torch = 12;
+      } else {
+        this.torch += 4;
+      }
+
+    }
+    this.itemPickupCallback(this, item);
   }
 
   move(dir) {
@@ -873,9 +980,10 @@ class Character {
 }
 
 class Player extends Character {
-  constructor(dungeon) {
+  constructor(dungeon, itemPickupCallback) {
     super();
     const SPR = "img_prod/s_pc_";
+    this.itemPickupCallback = itemPickupCallback;
     this.w = this.cw = 34;
     this.h = this.ch = 47;
     this.animated = true;
@@ -915,7 +1023,7 @@ class Monster extends Enemy {
       "it's rude to run you know"
     ]
     this.ng_dialog = [
-      "are you lost...?",
+      "are you lost?",
       "oh... you're back.",
       "I just want to talk this time, I promise..."
     ]
@@ -925,36 +1033,11 @@ class Monster extends Enemy {
     return (t == _O || t == _H || t == _B || t == _D); //room, hallway, open door, or closed door
   }
 
-  pixelate(ctx, l_x, l_y, w, h, size) {
-    const probability_var = 2.0 //the closer this number is to 0.5, the less likely things will blur for this pixel. 1.8 is a good starting number.
-    for(let x = l_x; x < l_x + w; x += size)
-    {
-      for(let y = l_y; y < l_y + h; y += size)
-      {
-        if ((rd() * probability_var) > 0.5) {
-          const max = 0.3;
-          const min = -0.3;
-          var pixela = ctx.getImageData(x, y, size, size);
-          const render_x = x + (rd() * max);
-          const render_y = y + (rd() * max);
-          var pixelb = ctx.getImageData(render_x, render_y, size, size);
-          ctx.fillStyle = "rgb("+pixelb.data[0]+","+pixelb.data[1]+","+pixelb.data[2]+")";
-          ctx.fillRect(x,y, size, size);
-          ctx.fillStyle = "rgb("+pixela.data[0]+","+pixela.data[1]+","+pixela.data[2]+")";
-          ctx.fillRect(render_x,render_y, size, size);
-        }
-      }
-
-    }
-  }
-
   drawSprite(ctx, x, y) {
     ctx.drawImage(...this.getCurrentSpriteArgs(x, y));
-    //this.pixelate(ctx, x, y, this.w, this.h, 8)
   }
 }
 
 
 const canvas = document.getElementById("game");
-const d = new Dungeon(canvas);
-const g = new Game(d, new Player(d));
+const g = new Game(canvas);
