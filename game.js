@@ -1022,7 +1022,7 @@ class Monster extends Enemy {
       "it's rude to run you know"
     ]
     this.ng_dialog = [
-      "are you lost?",
+      "I can smell you.",
       "oh... you're back.",
       "I just want to talk this time, I promise..."
     ]
