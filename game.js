@@ -896,7 +896,7 @@ class Character {
     if (this.state.moving) {
       return this["s_walk_"+this.state.direction].getDrawArgsForIndex(this.state.sprite_index, x, y);
     } else {
-      return this.s_idle.getDrawArgsForIndex(DIR.indexOf(this.state.direction), x, y);
+      return this.s_idle.getDrawArgsForIndex(0, x, y);
     }
   }
 
