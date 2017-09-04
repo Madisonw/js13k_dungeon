@@ -633,7 +633,7 @@ class Game {
     this.ma_panner.refDistance = 1;
     this.ma_panner.maxDistance = MAP_SIZE;
     this.ma_osc.frequency.value = 35.75;
-    this.ma_gain.gain.value = 2;
+    this.ma_gain.gain.value = 5;
     this.ma_osc.type = 'triangle';
 
     this.ma_osc.connect(this.ma_gain);
@@ -646,14 +646,16 @@ class Game {
 
   gameLoop() {
     if (!this.game_active) return;
+    this.frames++;
     this.level.render();
     this.torchLoop();
     this.textLoop();
     this.monsterSoundAura();
-    if (this.monster) this.AI(this.monster, this.player, this.level, this.level.ctx);
-    setTimeout(() => {
-      window.requestAnimationFrame(this.gameLoop);
-    },50)
+    if (this.monster && this.frames % 30 == 0) {
+      this.AI(this.monster, this.player, this.level, this.level.ctx);
+    }
+    window.requestAnimationFrame(this.gameLoop);
+
   }
 
   loseGame() {
@@ -663,10 +665,12 @@ class Game {
     this.gameOverScreen();
   }
   gameStartScreen() {
+    this.frames = 0;
     const handler = (evt) => {if (evt.key == "e") {document.removeEventListener("keypress",handler); this.gameStartScreenOn = false; this.game_active=true; this.newGame()}}
     document.addEventListener("keypress", handler);
     this.gameStartScreenOn = true;
     const render = () => {
+      this.frames++;
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0,0,1000,1000);
       this.ctx.fillStyle = "#fff";
@@ -692,6 +696,7 @@ class Game {
     this.objective_counter = 0;
     this.torchCounter = 0;
     this.textCounter = 0;
+    this.frames = 0;
     this.level = new Dungeon(this.canvas);
     this.GAME_START = performance.now();
     this.game_active = true;
@@ -703,6 +708,7 @@ class Game {
   }
 
   gameOverScreen() {
+    this.frames = 0;
     const handler = (evt) => {if (evt.key == "e") {
       document.removeEventListener("keypress",handler);
       this.gameOverScreenOn = false;
@@ -712,6 +718,7 @@ class Game {
     document.addEventListener("keypress", handler);
     this.gameOverScreenOn = true;
     const render = () => {
+      this.frames++;
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0,0,1000,1000);
       this.ctx.fillStyle = "#fff";
@@ -721,6 +728,7 @@ class Game {
       this.ctx.fillText("Press [E] to play again.", 180, 530);
       this.pixelate(this.ctx, 70, 250, 600, 120, 10, rd()*10);//for the title
       this.pixelate(this.ctx, 360, 510, 180, 24, 3, rd()*3);//play with me
+
       if (this.gameOverScreenOn) window.requestAnimationFrame(render);
     }
     render();
@@ -924,10 +932,10 @@ class Character {
 
   pickupItem(item) {
     if (item instanceof Oil) {
-      if (this.torch + 4 > 12) {
+      if (this.torch + 2 > 12) {
         this.torch = 12;
       } else {
-        this.torch += 4;
+        this.torch += 2;
       }
 
     }
@@ -1021,7 +1029,7 @@ class Player extends Character {
     this.s_idle = new Sprite(SPR+"idle-min.png", this.w/2, this.h/2, this.w, this.h);
     DIR.forEach((d) => { this["s_walk_"+d] = new Sprite(SPR+"walk_"+d+"-min.png",  this.w/2, this.h/2, this.w, this.h); })
     this.dungeon = dungeon;
-    this.torch = 12;
+    this.torch = 6;
     this.spriteCadence = 100;
   }
 }
@@ -1035,7 +1043,7 @@ class Monster extends Enemy {
     super();
     const SPR = "img_prod/monster_walk_";
     this.animated = true;
-    this.SPEED = TS * 0.09;
+    this.SPEED = TS * 0.12;
     this.spriteCadence = 100;
     this.w = 128;
     this.h = 64;
