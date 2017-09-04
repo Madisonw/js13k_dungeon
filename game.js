@@ -1,7 +1,3 @@
-//TODO item pickup logic
-//TODO monster AI
-//TODO game text logic
-
 const img = (uri) => {const i = new Image(); i.src = uri; return i; }
 const IMG_FLOOR = img("img_prod/floor-min.png");
 const IMG_WALL_N = img("img_prod/wall_n-min.png");
@@ -604,27 +600,20 @@ class Dungeon {
 class Game {
 
   constructor(canvas) {
-    this.level = new Dungeon(canvas);
+    this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.game_text = "";
     this.current_consecutive_game = 0;
     this.game_active = true;
     this.TORCH_DEGRADE_INTERVAL = 12000 //seconds
-    this.TORCH_DEGRADE_RATE = 1 //out of ten
-    this.current_second = 0;
+    this.TORCH_DEGRADE_RATE = 4 //out of ten
+
     this.TEXT_PRINT_INTERVAL = 500;
-    this.objective_counter = 0;
     this.OBJECTIVE_GOAL = 12;
-    this.torchCounter = 0;
-    this.textCounter = 0;
     this.changeDirection = this.changeDirection.bind(this);
     this.stopMovement = this.stopMovement.bind(this);
     this.gameLoop = this.gameLoop.bind(this);
     this.bindKeys();
-    this.placePlayer();
-    setTimeout(() => {this.placeMonster()},1000);
-    this.level.setPlayer(this.player);
-    this.audioSetup();
     this.dirTransform = {
       "w": "n",
       "a": "w",
@@ -668,22 +657,21 @@ class Game {
   }
 
   loseGame() {
-    console.log("game loss");
     this.game_active = false;
     this.current_consecutive_game++;
+    this.level = new Dungeon(this.canvas);
     this.gameOverScreen();
   }
   gameStartScreen() {
-    const handler = (evt) => {if (evt.key == "e") {document.removeEventListener("keypress",handler); this.gameStartScreen = false; this.newGame()}}
+    const handler = (evt) => {if (evt.key == "e") {document.removeEventListener("keypress",handler); this.gameStartScreenOn = false; this.game_active=true; this.newGame()}}
     document.addEventListener("keypress", handler);
-    const title = "Are You Lost?";
-    this.gameStartScreen = true;
+    this.gameStartScreenOn = true;
     const render = () => {
       this.ctx.fillStyle = "#000";
       this.ctx.fillRect(0,0,1000,1000);
       this.ctx.fillStyle = "#fff";
       this.ctx.font = "83px Courier"
-      this.ctx.fillText(title, 70, 300);
+      this.ctx.fillText("Are You Lost?", 70, 300);
       this.ctx.font = "18px Courier"
       this.ctx.fillText("You'll need headphones to hear me coming.", 150, 360);
       this.ctx.fillText("Use [W][A][S][D] to run away. [E] to interact.", 130, 430);
@@ -693,27 +681,63 @@ class Game {
       this.pixelate(this.ctx, 430, 340, 160, 18, 3, rd()*3);//for the headphones reminder
       this.pixelate(this.ctx, 350, 410, 90, 18, 3, rd()*3);//run away
       this.pixelate(this.ctx, 360, 510, 180, 24, 3, rd()*3);//play with me
-      if (this.gameStartScreen) window.requestAnimationFrame(render);
+      if (this.gameStartScreenOn) window.requestAnimationFrame(render);
     }
     render();
 
   }
 
   newGame() {
+    this.current_second = 0;
+    this.objective_counter = 0;
+    this.torchCounter = 0;
+    this.textCounter = 0;
+    this.level = new Dungeon(this.canvas);
     this.GAME_START = performance.now();
+    this.game_active = true;
+    this.placePlayer();
+    setTimeout(() => {this.placeMonster()},1000);
+    this.level.setPlayer(this.player);
+    this.audioSetup();
     this.gameLoop();
   }
 
   gameOverScreen() {
-
+    const handler = (evt) => {if (evt.key == "e") {
+      document.removeEventListener("keypress",handler);
+      this.gameOverScreenOn = false;
+      this.aCtx.close();
+      this.newGame();
+    }}
+    document.addEventListener("keypress", handler);
+    this.gameOverScreenOn = true;
+    const render = () => {
+      this.ctx.fillStyle = "#000";
+      this.ctx.fillRect(0,0,1000,1000);
+      this.ctx.fillStyle = "#fff";
+      this.ctx.font = "83px Courier"
+      this.ctx.fillText("I FOUND YOU", 70, 300);
+      this.ctx.font = "24px Courier"
+      this.ctx.fillText("Press [E] to play again.", 180, 530);
+      this.pixelate(this.ctx, 70, 250, 600, 120, 10, rd()*10);//for the title
+      this.pixelate(this.ctx, 360, 510, 180, 24, 3, rd()*3);//play with me
+      if (this.gameOverScreenOn) window.requestAnimationFrame(render);
+    }
+    render();
   }
   winGame() {
-    console.log("game win");
     this.game_active = false;
     this.gameWinScreen();
   }
   gameWinScreen() {
-
+    this.ctx.fillStyle = "#fff";
+    this.ctx.fillRect(0,0,1000,1000);
+    this.ctx.fillStyle = "#000";
+    this.ctx.font = "83px Courier"
+    this.ctx.fillText("You made it.", 70, 300);
+    this.ctx.font = "24px Courier"
+    this.ctx.fillText("I'm proud of you.", 210, 530);
+    document.body.style = "background-color: white;";
   }
 
   pixelate(ctx, l_x, l_y, w, h, size, intensity) {
@@ -796,7 +820,9 @@ class Game {
   }
 
   bindKeys() {
+    document.removeEventListener("keypress",this.changeDirection)
     document.addEventListener("keypress",this.changeDirection)
+    document.removeEventListener("keyup",this.stopMovement)
     document.addEventListener("keyup",this.stopMovement)
   }
 
@@ -808,6 +834,7 @@ class Game {
 
   advanceObjective() {
     this.objective_counter++;
+    this.setText(this.monster.dialog[this.objective_counter-1])
     if (this.objective_counter >= this.OBJECTIVE_GOAL) {
       this.winGame();
     }
@@ -829,14 +856,18 @@ class Game {
     monster.teleport(loc.x * TS, loc.y * TS)
     this.level.placeCharacter(monster);
     this.monster = monster;
-    this.setText(this.monster.ng_dialog[this.current_consecutive_game]);
+    let text = this.monster.ng_dialog[this.current_consecutive_game];
+    if (!text) {this.current_consecutive_game = 0; text = this.monster.ng_dialog[this.current_consecutive_game]}
+    this.setText(text);
   }
 
   stopMovement(event) {
+    if (!this.player) return;
     this.player.stopMovement(this.dirTransform[event.key]);
   }
 
   changeDirection(event) {
+    if (!this.player) return;
     const mv = this.player.move;
     if (event.key == "e") {
       this.player.interact();
@@ -1019,7 +1050,12 @@ class Monster extends Enemy {
       "what is it you're trying to do?",
       "i'll find you eventually.",
       "i always do...",
-      "it's rude to run you know"
+      "it's rude to run you know",
+      "You are getting closer.",
+      "Why do you want to run from me?",
+      "You won't find the next one.",
+      "I like the way you wriggle when you run.",
+      "You won't get out of here",
     ]
     this.ng_dialog = [
       "I can smell you.",
